@@ -3,9 +3,8 @@ local M = {}
 function M.setup(opts)
 	M.opts = opts or {}
 
-	vim.api.nvim_create_user_command('FoundryHello', function()
-		vim.notify('Hello from foundry.nvim!')
-	end, {})
+	local menu = require('foundry.menu')
+	require('foundry.commands').init(menu)
 end
 
 return M
