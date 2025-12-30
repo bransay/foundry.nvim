@@ -18,6 +18,8 @@ local function format_actions(actions, icons, default_icon)
 end
 
 function M.show(project_module)
+	local co = coroutine.running()
+
 	local project_actions = project_module.actions()
 
 	local actions = {}
@@ -27,8 +29,6 @@ function M.show(project_module)
 		table.insert(actions, action.name)
 		table.insert(action_funcs, action.action)
 	end
-
-	vim.print(vim.inspect(actions))
 
 	-- these are just for aesthetics
 	local icons = {
@@ -46,9 +46,21 @@ function M.show(project_module)
 		choices,
 		{},
 		function(_, idx)
-			action_funcs[idx]()
+			local action = nil
+			if idx then
+				action = action_funcs[idx]
+			end
+			coroutine.resume(co, action)
 		end
 	)
+
+	local action = coroutine.yield()
+	if not action then
+		return
+	end
+
+	action()
+	vim.notify('after menu')
 end
 
 return M
