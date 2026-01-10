@@ -60,7 +60,6 @@ function M.show(project_module)
 	end
 
 	action()
-	vim.notify('after menu')
 end
 
 return M
