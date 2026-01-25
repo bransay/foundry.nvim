@@ -72,7 +72,6 @@ function M.directory_picker()
 	end
 
 	return function(prompt, default)
-		telescope
 	end
 end
 
