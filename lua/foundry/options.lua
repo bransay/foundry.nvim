@@ -10,17 +10,65 @@ local function ensure_workspace()
 	return workspace_path
 end
 
+function M.input_picker()
+	return function(prompt, default)
+		local co = coroutine.running()
+		vim.ui.input(
+			{
+				prompt = prompt,
+				default = default or ''
+			},
+			function(input)
+				coroutine.resume(co, input)
+			end
+		)
+		return coroutine.yield()
+	end
+end
+
+--- @param choices_fun fun():(string|string[])[]
+function M.select_picker(choices_fun)
+	return function(prompt, default)
+		local co = coroutine.running()
+		local choices = choices_fun()
+
+		local display_choices = {}
+		for _, item in ipairs(choices) do
+			local value = item[1] or item
+			local display = item[2] or item
+
+			local display_text = display
+			if default and default == value then
+				display_text = display .. ' '
+			end
+			table.insert(display_choices, { display_text, value })
+		end
+
+		vim.ui.select(
+			display_choices,
+			{
+				prompt = prompt,
+				format_item = function(item)
+					return item[1]
+				end
+			},
+			function(selected)
+				coroutine.resume(co, selected and selected[2] or nil)
+			end
+		)
+		return coroutine.yield()
+	end
+end
+
 ---@class OptionOpts
----@field choices fun()?:string[]
----@field default string?
----@field force_ui boolean?
+---@field picker? fun(prompt:string, default?:string):string?
+---@field default? string
+---@field force_ui? boolean
 
 ---@param option_name string
 ---@param option_string string
 ---@param opt OptionOpts
 function M.get(option_name, option_string, opt)
-	local co = coroutine.running()
-
 	-- first look for existing value
 	local workspace_path = ensure_workspace()
 	local option_path = vim.fs.joinpath(workspace_path, option_name)
@@ -38,49 +86,8 @@ function M.get(option_name, option_string, opt)
 		end
 	end
 
-	local value = nil
-	if opt.choices then
-		-- if choices exist then use vim.ui.select
-		local choices = opt.choices()
-
-		local display_choices = {}
-		for _, item in ipairs(choices) do
-			local value = item[1] or item
-			local display = item[2] or item
-
-			local display_text = display
-			if existing_value and existing_value == value then
-				display_text = display .. ' ' 
-			end
-			table.insert(display_choices, { display_text, value })
-		end
-
-		vim.ui.select(
-			display_choices,
-			{
-				prompt = option_string,
-				format_item = function(item)
-					return item[1]
-				end
-			},
-			function(selected)
-				coroutine.resume(co, selected and selected[2] or nil)
-			end
-		)
-		value = coroutine.yield()
-	else
-		-- otherwise use vim.ui.input
-		vim.ui.input(
-			{
-				prompt = option_string,
-				default = existing_value or ''
-			},
-			function(input)
-				coroutine.resume(co, input)
-			end
-		)
-		value = coroutine.yield()
-	end
+	opt.picker = opt.picker or M.input_picker()
+	local value = opt.picker(option_string, existing_value)
 
 	if value then
 		-- write new value

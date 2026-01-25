@@ -35,7 +35,7 @@ local function get_option(option, show_ui)
 		opts.force_ui = true
 	end
 	if option[3] then
-		opts.choices = option[3]
+		opts.picker = foundry_options.select_picker(option[3])
 	end
 	return foundry_options.get(option[1], option[2], opts)
 end
