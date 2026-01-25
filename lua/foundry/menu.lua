@@ -37,6 +37,7 @@ function M.show(project_module)
 		debug = '󰃤',
 		run = '',
 		test = '󰙨',
+		options = '',
 	}
 	local default_icon = ''
 
