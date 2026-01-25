@@ -8,7 +8,7 @@ local M = {}
 function M.get_default_opts()
 	--- @type SetupOptions
 	local options = {
-		task = function(name, cmd)
+		task = function(_, cmd)
 			local co = coroutine.running()
 			vim.system(cmd, {}, function(obj)
 				coroutine.resume(co, obj.code)

@@ -1,6 +1,6 @@
 local M = {}
 
-local opts = require('foundry').opts
+local setup_opts = require('foundry').opts
 local foundry_options = require('foundry.options')
 
 local function get_preset_options()
@@ -24,8 +24,18 @@ local function get_preset_options()
 	return results
 end
 
+local get_targets_func = nil
+local function get_targets()
+	if not get_targets_func then
+		return {}
+	end
+	return get_targets_func()
+end
+
 local options = {
-	PRESET = { 'preset', 'Preset', get_preset_options }
+	PRESET = { 'preset', 'Preset', foundry_options.select_picker(get_preset_options) },
+	BUILD_DIR = { 'build_dir', 'Build Directory', foundry_options.directory_picker() },
+	TARGET = { 'target', 'Target', foundry_options.select_picker(get_targets) }
 }
 
 local function get_option(option, show_ui)
@@ -35,9 +45,22 @@ local function get_option(option, show_ui)
 		opts.force_ui = true
 	end
 	if option[3] then
-		opts.picker = foundry_options.select_picker(option[3])
+		opts.picker = option[3]
 	end
 	return foundry_options.get(option[1], option[2], opts)
+end
+
+get_targets_func = function()
+	local build_dir = get_option(options.BUILD_DIR, true)
+	if not build_dir then
+		vim.notify('Choosing targets requires build directory', vim.log.levels.ERROR)
+		return nil
+	end
+
+	-- TODO: return targets
+	return {
+		"TODO"
+	}
 end
 
 function M.generate()
@@ -53,7 +76,7 @@ function M.generate()
 
 	-- kick off generating task
 	local task_name = 'Generating preset: ' .. preset
-	local result = opts.task(task_name, { 'cmake', '--preset', preset })
+	local result = setup_opts.task(task_name, { 'cmake', '--preset', preset })
 
 	if result then
 		vim.notify(task_name .. ' succeeded')
@@ -75,7 +98,7 @@ function M.build()
 
 	-- kick off generating task
 	local task_name = 'Building preset: ' .. preset
-	local result = opts.task(task_name, { 'cmake', '--build', '--preset', preset })
+	local result = setup_opts.task(task_name, { 'cmake', '--build', '--preset', preset })
 
 	if result then
 		vim.notify(task_name .. ' succeeded')

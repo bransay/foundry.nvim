@@ -26,11 +26,16 @@ function M.input_picker()
 	end
 end
 
---- @param choices_fun fun():(string|string[])[]
+--- @param choices_fun fun():(string[]|string[][]|(string|string[])[])
 function M.select_picker(choices_fun)
 	return function(prompt, default)
 		local co = coroutine.running()
 		local choices = choices_fun()
+
+		-- no valid choices - don't even bother with ui
+		if not choices or #choices == 0 then
+			return nil
+		end
 
 		local display_choices = {}
 		for _, item in ipairs(choices) do
@@ -58,6 +63,26 @@ function M.select_picker(choices_fun)
 		)
 		return coroutine.yield()
 	end
+end
+
+function M.directory_picker()
+	local has_telescope, telescope = pcall(require, 'telescope')
+	if not has_telescope then
+		return M.input_picker()
+	end
+
+	-- TODO: implement me
+	return M.input_picker()
+end
+
+function M.file_picker()
+	local has_telescope, telescope = pcall(require, 'telescope')
+	if not has_telescope then
+		return M.input_picker()
+	end
+
+	-- TODO: implement me
+	return M.input_picker()
 end
 
 ---@class OptionOpts
