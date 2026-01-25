@@ -1,7 +1,10 @@
 local M = {}
 
 function M.setup(opts)
-	M.opts = opts or {}
+	opts = opts or {}
+
+	local default_opts = require('foundry.setup')
+	M.opts = vim.tbl_deep_extend('force', default_opts, opts)
 
 	-- project modules
 	-- TODO: this should be detected, not just used as is

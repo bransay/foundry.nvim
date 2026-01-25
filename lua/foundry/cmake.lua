@@ -1,5 +1,6 @@
 local M = {}
 
+local opts = require('foundry').opts
 local foundry_options = require('foundry.options')
 
 local function get_preset_options()
@@ -48,11 +49,39 @@ function M.generate()
 	end
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
-	vim.notify('Generating preset: ' .. preset)
+	vim.notify('Generating preset: ' .. preset .. '...')
+
+	-- kick off generating task
+	local task_name = 'Generating preset: ' .. preset
+	local result = opts.task(task_name, { 'cmake', '--preset', preset })
+
+	if result then
+		vim.notify(task_name .. ' succeeded')
+	else
+		vim.notify(task_name .. ' failed', vim.log.levels.ERROR)
+	end
 end
 
 function M.build()
-	vim.notify('Chose build!')
+	local preset = get_option(options.PRESET)
+
+	if not preset then
+		vim.notify('No preset selected', vim.log.levels.ERROR)
+		return
+	end
+
+	-- TODO: let's do persistent notifications that last until the preset is complete
+	vim.notify('Building preset: ' .. preset .. '...')
+
+	-- kick off generating task
+	local task_name = 'Building preset: ' .. preset
+	local result = opts.task(task_name, { 'cmake', '--build', '--preset', preset })
+
+	if result then
+		vim.notify(task_name .. ' succeeded')
+	else
+		vim.notify(task_name .. ' failed', vim.log.levels.ERROR)
+	end
 end
 
 function M.debug()
