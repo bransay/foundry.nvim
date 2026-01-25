@@ -51,7 +51,13 @@ local function get_option(option, show_ui)
 end
 
 get_targets_func = function()
-	local build_dir = get_option(options.BUILD_DIR, true)
+	local preset = get_option(options.PRESET)
+	if not preset then
+		vim.notify('Choosing targets requires preset', vim.log.levels.ERROR)
+		return nil
+	end
+
+	local build_dir = get_option(options.BUILD_DIR)
 	if not build_dir then
 		vim.notify('Choosing targets requires build directory', vim.log.levels.ERROR)
 		return nil

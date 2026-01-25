@@ -66,13 +66,14 @@ function M.select_picker(choices_fun)
 end
 
 function M.directory_picker()
-	local has_telescope, telescope = pcall(require, 'telescope')
+	local has_telescope, telescope = pcall(require, 'telescope.builtins')
 	if not has_telescope then
 		return M.input_picker()
 	end
 
-	-- TODO: implement me
-	return M.input_picker()
+	return function(prompt, default)
+		telescope
+	end
 end
 
 function M.file_picker()
