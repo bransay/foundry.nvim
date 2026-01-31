@@ -35,7 +35,9 @@ end
 local options = {
 	BUILD_DIR = { 'build_dir', 'Build Directory', foundry_options.directory_picker() },
 	PRESET = { 'preset', 'Preset', foundry_options.select_picker(get_preset_options) },
-	TARGET = { 'target', 'Target', foundry_options.select_picker(get_targets) }
+	TARGET = { 'target', 'Target', foundry_options.select_picker(get_targets) },
+	EXECUTABLE_PATH = { 'exe_path', 'Executable Path', foundry_options.file_picker() },
+	EXECUTABLE_ARGUMENTS = { 'exe_args', 'Executable Arguments', foundry_options.input_picker() },
 }
 
 local function get_option(option, default, show_ui)
@@ -136,6 +138,47 @@ get_targets_func = function()
 	return targets
 end
 
+local function get_default_executable_path(build_dir, target)
+	local api_dir = vim.fs.joinpath(build_dir, '.cmake', 'api', 'v1')
+	local target_file = vim.fs.joinpath(api_dir, 'reply', 'target-' .. target .. '-*.json')
+	target_file = vim.fn.glob(target_file, true, true)
+
+	if #target_file == 0 then
+		return nil
+	end
+	target_file = target_file[1]
+
+	if not vim.fn.filereadable(target_file) then
+		return nil
+	end
+
+	local contents = vim.fn.readfile(target_file)
+	contents = table.concat(contents, '\n')
+
+	local target_properties = vim.json.decode(contents)
+	if not target_properties then
+		return nil
+	end
+
+	local artifacts = target_properties.artifacts
+	if not artifacts then
+		return nil
+	end
+
+	local artifact_path = nil
+	for _, artifact in ipairs(artifacts) do
+		if artifact and artifact.path then
+			-- too ambiguous, multiple artifacts
+			if artifact_path then
+				return nil
+			end
+			artifact_path = artifact.path
+		end
+	end
+
+	return vim.fs.joinpath(build_dir, artifact_path)
+end
+
 function M.generate()
 	local preset = get_option(options.PRESET)
 
@@ -221,7 +264,37 @@ function M.debug()
 end
 
 function M.run()
-	vim.notify('Chose run!')
+	local preset = get_option(options.PRESET)
+	if not preset then
+		vim.notify('No preset selected', vim.log.levels.ERROR)
+		return
+	end
+
+	local target = get_option(options.TARGET)
+	if not target then
+		vim.notify('No active target', vim.log.levels.ERROR)
+	end
+
+	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
+	assert(build_dir, 'build_dir must be valid')
+
+	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
+	assert(executable_path, 'Executable path must be valid.')
+
+	if not vim.fn.filereadable(executable_path) then
+		vim.notify('Executable path is not readable', vim.log.levels.ERROR)
+		return
+	end
+
+	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
+	local cmd = vim.fn.split(arguments, ' ')
+
+	vim.notify('Running ' .. target)
+
+	-- kick off generating task
+	local task_name = 'Running ' .. preset
+	table.insert(cmd, 1, executable_path)
+	setup_opts.task(task_name, cmd)
 end
 
 function M.test()
