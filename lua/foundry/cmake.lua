@@ -169,17 +169,45 @@ function M.build()
 		return
 	end
 
+	local target = get_option(options.TARGET)
+	if not target then
+		vim.notify('No active target', vim.log.levels.ERROR)
+	end
+
 	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
 	assert(build_dir, 'build_dir must be valid')
 
-	-- TODO: we should be building a target, not just everything.. right? not sure
+	-- TODO: let's do persistent notifications that last until the preset is complete
+	vim.notify('Building target: ' .. target .. '...')
+
+	-- kick off generating task
+	local task_name = 'Building target: ' .. target
+	local result = setup_opts.task(task_name, { 'cmake', '--build', build_dir, '--target', target })
+
+	if result then
+		vim.notify(task_name .. ' succeeded')
+	else
+		vim.notify(task_name .. ' failed', vim.log.levels.ERROR)
+	end
+end
+
+function M.build_all()
+	local preset = get_option(options.PRESET)
+
+	if not preset then
+		vim.notify('No preset selected', vim.log.levels.ERROR)
+		return
+	end
+
+	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
+	assert(build_dir, 'build_dir must be valid')
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
 	vim.notify('Building preset: ' .. preset .. '...')
 
 	-- kick off generating task
 	local task_name = 'Building preset: ' .. preset
-	local result = setup_opts.task(task_name, { 'cmake', '--build', '--preset', preset, '-B', build_dir })
+	local result = setup_opts.task(task_name, { 'cmake', '--build', build_dir })
 
 	if result then
 		vim.notify(task_name .. ' succeeded')
@@ -233,6 +261,7 @@ function M.actions()
 	return {
 		{ name = 'Generate', action = M.generate },
 		{ name = 'Build', action = M.build },
+		{ name = 'Build All', action = M.build_all },
 		{ name = 'Debug', action = M.debug },
 		{ name = 'Run', action = M.run },
 		{ name = 'Test', action = M.test },
