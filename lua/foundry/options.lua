@@ -65,6 +65,16 @@ function M.select_picker(choices_fun)
 	end
 end
 
+function M.boolean_picker()
+	local function boolean_options()
+		return {
+			{ 'true', 'Yes' },
+			{ 'false', 'No' }
+		}
+	end
+	return M.select_picker(boolean_options)
+end
+
 function M.directory_picker()
 	local has_telescope, telescope = pcall(require, 'telescope.builtins')
 	if not has_telescope then
