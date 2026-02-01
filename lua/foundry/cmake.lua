@@ -2,6 +2,7 @@ local M = {}
 
 local setup_opts = require('foundry').opts
 local foundry_options = require('foundry.options')
+local foundry_debug = require('foundry.debug')
 
 local function get_preset_options()
 	local list_presets_output = vim.fn.systemlist('cmake --list-presets')
@@ -38,7 +39,11 @@ local options = {
 	TARGET = { 'target', 'Target', foundry_options.select_picker(get_targets) },
 	EXECUTABLE_PATH = { 'exe_path', 'Executable Path', foundry_options.file_picker() },
 	EXECUTABLE_ARGUMENTS = { 'exe_args', 'Executable Arguments', foundry_options.input_picker() },
+	DEBUGGER_LANGUAGE = { 'dbg_lang', 'Debugger Language', foundry_options.input_picker() },
+	BUILD_BEFORE_RUN = { 'build_before_run', 'Build before run', foundry_options.boolean_picker() },
 }
+-- add debugger options
+options = vim.tbl_deep_extend('force', options, foundry_debug.options)
 
 local function get_option(option, default, show_ui)
 	show_ui = show_ui or false
@@ -138,7 +143,7 @@ get_targets_func = function()
 	return targets
 end
 
-local function get_default_executable_path(build_dir, target)
+local function get_target_info(build_dir, target)
 	local api_dir = vim.fs.joinpath(build_dir, '.cmake', 'api', 'v1')
 	local target_file = vim.fs.joinpath(api_dir, 'reply', 'target-' .. target .. '-*.json')
 	target_file = vim.fn.glob(target_file, true, true)
@@ -155,7 +160,11 @@ local function get_default_executable_path(build_dir, target)
 	local contents = vim.fn.readfile(target_file)
 	contents = table.concat(contents, '\n')
 
-	local target_properties = vim.json.decode(contents)
+	return vim.json.decode(contents)
+end
+
+local function get_default_executable_path(build_dir, target)
+	local target_properties = get_target_info(build_dir, target)
 	if not target_properties then
 		return nil
 	end
@@ -177,6 +186,21 @@ local function get_default_executable_path(build_dir, target)
 	end
 
 	return vim.fs.joinpath(build_dir, artifact_path)
+end
+
+local function get_default_debugger_language(build_dir, target)
+	local target_properties = get_target_info(build_dir, target)
+	if not target_properties then
+		return nil
+	end
+
+	local link_properties = target_properties.link
+	if not link_properties then
+		return nil
+	end
+
+	local language = link_properties.language
+	return language
 end
 
 function M.generate()
@@ -260,7 +284,58 @@ function M.build_all()
 end
 
 function M.debug()
-	vim.notify('Chose debug!')
+	local preset = get_option(options.PRESET)
+	if not preset then
+		vim.notify('No preset selected', vim.log.levels.ERROR)
+		return
+	end
+
+	local target = get_option(options.TARGET)
+	if not target then
+		vim.notify('No active target', vim.log.levels.ERROR)
+		return
+	end
+
+	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
+	assert(build_dir, 'build_dir must be valid')
+
+	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
+	if not executable_path then
+		vim.notify('No executable to run', vim.log.levels.ERROR)
+		return
+	end
+
+	if not vim.fn.filereadable(executable_path) then
+		vim.notify('Executable path is not readable', vim.log.levels.ERROR)
+		return
+	end
+
+	local debugger_language = get_option(options.DEBUGGER_LANGUAGE, get_default_debugger_language(build_dir, target))
+	if not debugger_language then
+		vim.notify('No debugger language available', vim.log.levels.ERROR)
+		return
+	end
+
+	local build_before_run = (get_option(options.BUILD_BEFORE_RUN, 'true') == 'true')
+	if build_before_run then
+		M.build()
+	end
+
+	-- maps cmake lanugage to dap equivalent
+	local language_fts = {
+		['CXX'] = 'cpp'
+	}
+
+	local language_ft = language_fts[debugger_language] or debugger_language
+	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
+	local args = vim.fn.split(arguments, ' ')
+
+	local debug = require('foundry.debug')
+	local result, reason = debug.debug(language_ft, executable_path, args)
+
+	if not result then
+		vim.notify(reason, vim.log.levels.ERROR)
+	end
 end
 
 function M.run()
@@ -273,17 +348,26 @@ function M.run()
 	local target = get_option(options.TARGET)
 	if not target then
 		vim.notify('No active target', vim.log.levels.ERROR)
+		return
 	end
 
 	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
 	assert(build_dir, 'build_dir must be valid')
 
 	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
-	assert(executable_path, 'Executable path must be valid.')
+	if not executable_path then
+		vim.notify('No executable to run', vim.log.levels.ERROR)
+		return
+	end
 
 	if not vim.fn.filereadable(executable_path) then
 		vim.notify('Executable path is not readable', vim.log.levels.ERROR)
 		return
+	end
+
+	local build_before_run = (get_option(options.BUILD_BEFORE_RUN, 'true') == 'true')
+	if build_before_run then
+		M.build()
 	end
 
 	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
@@ -291,7 +375,6 @@ function M.run()
 
 	vim.notify('Running ' .. target)
 
-	-- kick off generating task
 	local task_name = 'Running ' .. preset
 	table.insert(cmd, 1, executable_path)
 	setup_opts.task(task_name, cmd)
