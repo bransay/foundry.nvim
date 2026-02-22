@@ -429,7 +429,9 @@ function M.test()
 		return
 	end
 
-	vim.print(test)
+	local task_name = 'Running test: ' .. test
+	local cmd = { 'ctest', '-R', test }
+	setup_opts.task(task_name, cmd, build_dir)
 end
 
 function M.options()
