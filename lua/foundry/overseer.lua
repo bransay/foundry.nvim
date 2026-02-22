@@ -9,11 +9,12 @@ function M.modify(opts)
 		return opts
 	end
 
-	opts.task = function(name, cmd)
+	opts.task = function(name, cmd, cwd)
 		local co = coroutine.running()
 		local task = overseer.new_task({
 			name = name,
-			cmd = cmd
+			cmd = cmd,
+			cwd = cwd
 		})
 		task:subscribe('on_complete', function(_, status)
 			coroutine.resume(co, status == 'SUCCESS')
