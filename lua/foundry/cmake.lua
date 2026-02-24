@@ -332,12 +332,7 @@ local function get_executable_context()
 	return build_dir, target, executable_path
 end
 
-function M.debug()
-	local build_dir, target, executable_path = get_executable_context()
-	if not executable_path then
-		return
-	end
-
+local function launch_debugger(build_dir, target, executable_path, args)
 	local debugger_language = get_option(options.DEBUGGER_LANGUAGE, get_default_debugger_language(build_dir, target))
 	if not debugger_language then
 		vim.notify('No debugger language available', vim.log.levels.ERROR)
@@ -345,8 +340,6 @@ function M.debug()
 	end
 
 	local language_ft = LANGUAGE_FTS[debugger_language] or debugger_language
-	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
-	local args = vim.fn.split(arguments, ' ')
 
 	local debug = require('foundry.debug')
 	local result, reason = debug.debug(language_ft, executable_path, args)
@@ -354,6 +347,18 @@ function M.debug()
 	if not result then
 		vim.notify(reason, vim.log.levels.ERROR)
 	end
+end
+
+function M.debug()
+	local build_dir, target, executable_path = get_executable_context()
+	if not executable_path then
+		return
+	end
+
+	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
+	local args = vim.fn.split(arguments, ' ')
+
+	launch_debugger(build_dir, target, executable_path, args)
 end
 
 function M.run()
@@ -454,26 +459,13 @@ function M.debug_test()
 		end
 	end
 
-	local target = get_target_from_executable(build_dir, executable_path)
-	local debugger_language = get_option(options.DEBUGGER_LANGUAGE, get_default_debugger_language(build_dir, target))
-	if not debugger_language then
-		vim.notify('No debugger language available', vim.log.levels.ERROR)
-		return
-	end
-
 	local build_before_run = (get_option(options.BUILD_BEFORE_RUN, 'true') == 'true')
 	if build_before_run then
 		M.build()
 	end
 
-	local language_ft = LANGUAGE_FTS[debugger_language] or debugger_language
-
-	local debug = require('foundry.debug')
-	local result_debug, reason = debug.debug(language_ft, executable_path, args)
-
-	if not result_debug then
-		vim.notify(reason, vim.log.levels.ERROR)
-	end
+	local target = get_target_from_executable(build_dir, executable_path)
+	launch_debugger(build_dir, target, executable_path, args)
 end
 
 function M.options()
