@@ -29,6 +29,9 @@ local function get_preset_options()
 	return results
 end
 
+-- Lazy evaluation pattern required due to circular dependency:
+-- get_targets must exist before options, but its implementation needs get_build_context
+-- which needs options.BUILD_DIR. Implementation is assigned later (line 88).
 local get_targets_func = nil
 local function get_targets()
 	if not get_targets_func then
