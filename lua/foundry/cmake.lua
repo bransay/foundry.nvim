@@ -219,7 +219,7 @@ local function get_default_debugger_language(build_dir, target)
 	return language
 end
 
-local function get_target_from_executable(build_dir, executable_path)
+local function get_language_from_executable(build_dir, executable_path)
 	local targets = get_targets()
 	if not targets then
 		return nil
@@ -228,7 +228,7 @@ local function get_target_from_executable(build_dir, executable_path)
 	for _, target in ipairs(targets) do
 		local target_executable = get_default_executable_path(build_dir, target)
 		if target_executable and target_executable == executable_path then
-			return target
+			return get_default_debugger_language(build_dir, target)
 		end
 	end
 
@@ -332,8 +332,8 @@ local function get_executable_context()
 	return build_dir, target, executable_path
 end
 
-local function launch_debugger(build_dir, target, executable_path, args)
-	local debugger_language = get_option(options.DEBUGGER_LANGUAGE, get_default_debugger_language(build_dir, target))
+local function launch_debugger(executable_path, args, default_language)
+	local debugger_language = get_option(options.DEBUGGER_LANGUAGE, default_language)
 	if not debugger_language then
 		vim.notify('No debugger language available', vim.log.levels.ERROR)
 		return
@@ -358,7 +358,7 @@ function M.debug()
 	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
 	local args = vim.fn.split(arguments, ' ')
 
-	launch_debugger(build_dir, target, executable_path, args)
+	launch_debugger(executable_path, args, get_default_debugger_language(build_dir, target))
 end
 
 function M.run()
@@ -464,8 +464,7 @@ function M.debug_test()
 		M.build()
 	end
 
-	local target = get_target_from_executable(build_dir, executable_path)
-	launch_debugger(build_dir, target, executable_path, args)
+	launch_debugger(executable_path, args, get_language_from_executable(build_dir, executable_path))
 end
 
 function M.options()
