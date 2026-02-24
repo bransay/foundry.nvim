@@ -4,6 +4,10 @@ local setup_opts = require('foundry').opts
 local foundry_options = require('foundry.options')
 local foundry_debug = require('foundry.debug')
 
+local LANGUAGE_FTS = {
+	['CXX'] = 'cpp'
+}
+
 local function get_preset_options()
 	local list_presets_output = vim.fn.systemlist('cmake --list-presets')
 
@@ -340,12 +344,7 @@ function M.debug()
 		return
 	end
 
-	-- maps cmake lanugage to dap equivalent
-	local language_fts = {
-		['CXX'] = 'cpp'
-	}
-
-	local language_ft = language_fts[debugger_language] or debugger_language
+	local language_ft = LANGUAGE_FTS[debugger_language] or debugger_language
 	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
 	local args = vim.fn.split(arguments, ' ')
 
@@ -467,11 +466,7 @@ function M.debug_test()
 		M.build()
 	end
 
-	local language_fts = {
-		['CXX'] = 'cpp'
-	}
-
-	local language_ft = language_fts[debugger_language] or debugger_language
+	local language_ft = LANGUAGE_FTS[debugger_language] or debugger_language
 
 	local debug = require('foundry.debug')
 	local result_debug, reason = debug.debug(language_ft, executable_path, args)
