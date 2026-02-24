@@ -219,6 +219,58 @@ local function get_target_from_executable(build_dir, executable_path)
 	return nil
 end
 
+local function select_test()
+	local preset = get_option(options.PRESET)
+	if not preset then
+		vim.notify('No preset selected', vim.log.levels.ERROR)
+		return nil, nil
+	end
+
+	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
+	if not build_dir then
+		vim.notify('Invalid build directory', vim.log.levels.ERROR)
+		return nil, nil
+	end
+
+	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
+	if result.code ~= 0 then
+		vim.notify('Test discovery failed', vim.log.levels.ERROR)
+		return nil, nil
+	end
+
+	local json_output = vim.json.decode(result.stdout)
+	if not json_output or not json_output.tests then
+		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
+		return nil, nil
+	end
+
+	local discovered_tests = {}
+	for _, test in ipairs(json_output.tests) do
+		table.insert(discovered_tests, test)
+	end
+
+	local co = coroutine.running()
+	vim.ui.select(
+		discovered_tests,
+		{
+			prompt = 'Tests',
+			format_item = function(item)
+				return item.name
+			end
+		},
+		function(_, idx)
+			coroutine.resume(co, discovered_tests[idx])
+		end
+	)
+
+	local test = coroutine.yield()
+	if not test then
+		return nil, nil
+	end
+
+	return test, build_dir
+end
+
 function M.generate()
 	local preset = get_option(options.PRESET)
 
@@ -397,104 +449,18 @@ function M.run()
 end
 
 function M.test()
-	local preset = get_option(options.PRESET)
-	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
-		return
-	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	if not build_dir then
-		vim.notify('Invalid build directory', vim.log.levels.ERROR)
-		return
-	end
-
-	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
-	if result.code ~= 0 then
-		vim.notify('Test discovery failed', vim.log.levels.ERROR)
-		return
-	end
-
-	local json_output = vim.json.decode(result.stdout)
-	if not json_output or not json_output.tests then
-		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
-		return
-	end
-
-	local discovered_tests = {}
-	for _, test in ipairs(json_output.tests) do
-		table.insert(discovered_tests, test.name)
-	end
-
-	local co = coroutine.running()
-	vim.ui.select(
-		discovered_tests,
-		{
-			prompt = 'Tests',
-			format_item = function(item)
-				return item
-			end
-		},
-		function(_, idx)
-			coroutine.resume(co, discovered_tests[idx])
-		end
-	)
-
-	local test = coroutine.yield()
+	local test, build_dir = select_test()
 	if not test then
 		return
 	end
 
-	local task_name = 'Running test: ' .. test
-	local cmd = { 'ctest', '-R', test }
+	local task_name = 'Running test: ' .. test.name
+	local cmd = { 'ctest', '-R', test.name }
 	setup_opts.task(task_name, cmd, build_dir)
 end
 
 function M.debug_test()
-	local preset = get_option(options.PRESET)
-	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
-		return
-	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	if not build_dir then
-		vim.notify('Invalid build directory', vim.log.levels.ERROR)
-		return
-	end
-
-	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
-	if result.code ~= 0 then
-		vim.notify('Test discovery failed', vim.log.levels.ERROR)
-		return
-	end
-
-	local json_output = vim.json.decode(result.stdout)
-	if not json_output or not json_output.tests then
-		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
-		return
-	end
-
-	local discovered_tests = {}
-	for _, test in ipairs(json_output.tests) do
-		table.insert(discovered_tests, test)
-	end
-
-	local co = coroutine.running()
-	vim.ui.select(
-		discovered_tests,
-		{
-			prompt = 'Tests',
-			format_item = function(item)
-				return item.name
-			end
-		},
-		function(_, idx)
-			coroutine.resume(co, discovered_tests[idx])
-		end
-	)
-
-	local test = coroutine.yield()
+	local test, build_dir = select_test()
 	if not test then
 		return
 	end
