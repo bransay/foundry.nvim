@@ -297,26 +297,40 @@ function M.build_all()
 	end
 end
 
-function M.debug()
+local function get_executable_context()
 	local _, build_dir = get_build_context()
 	if not build_dir then
-		return
+		return nil, nil, nil
 	end
 
 	local target = get_option(options.TARGET)
 	if not target then
 		vim.notify('No active target', vim.log.levels.ERROR)
-		return
+		return nil, nil, nil
 	end
 
 	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
 	if not executable_path then
 		vim.notify('No executable to run', vim.log.levels.ERROR)
-		return
+		return nil, nil, nil
 	end
 
 	if not vim.fn.filereadable(executable_path) then
 		vim.notify('Executable path is not readable', vim.log.levels.ERROR)
+		return nil, nil, nil
+	end
+
+	local build_before_run = (get_option(options.BUILD_BEFORE_RUN, 'true') == 'true')
+	if build_before_run then
+		M.build()
+	end
+
+	return build_dir, target, executable_path
+end
+
+function M.debug()
+	local build_dir, target, executable_path = get_executable_context()
+	if not executable_path then
 		return
 	end
 
@@ -324,11 +338,6 @@ function M.debug()
 	if not debugger_language then
 		vim.notify('No debugger language available', vim.log.levels.ERROR)
 		return
-	end
-
-	local build_before_run = (get_option(options.BUILD_BEFORE_RUN, 'true') == 'true')
-	if build_before_run then
-		M.build()
 	end
 
 	-- maps cmake lanugage to dap equivalent
@@ -349,31 +358,9 @@ function M.debug()
 end
 
 function M.run()
-	local _, build_dir = get_build_context()
-	if not build_dir then
-		return
-	end
-
-	local target = get_option(options.TARGET)
-	if not target then
-		vim.notify('No active target', vim.log.levels.ERROR)
-		return
-	end
-
-	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
+	local _, target, executable_path = get_executable_context()
 	if not executable_path then
-		vim.notify('No executable to run', vim.log.levels.ERROR)
 		return
-	end
-
-	if not vim.fn.filereadable(executable_path) then
-		vim.notify('Executable path is not readable', vim.log.levels.ERROR)
-		return
-	end
-
-	local build_before_run = (get_option(options.BUILD_BEFORE_RUN, 'true') == 'true')
-	if build_before_run then
-		M.build()
 	end
 
 	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
