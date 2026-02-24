@@ -231,42 +231,6 @@ local function get_target_from_executable(build_dir, executable_path)
 	return nil
 end
 
-local function select_test(build_dir)
-	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
-	if result.code ~= 0 then
-		vim.notify('Test discovery failed', vim.log.levels.ERROR)
-		return nil
-	end
-
-	local json_output = vim.json.decode(result.stdout)
-	if not json_output or not json_output.tests then
-		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
-		return nil
-	end
-
-	local discovered_tests = {}
-	for _, test in ipairs(json_output.tests) do
-		table.insert(discovered_tests, test)
-	end
-
-	local co = coroutine.running()
-	vim.ui.select(
-		discovered_tests,
-		{
-			prompt = 'Tests',
-			format_item = function(item)
-				return item.name
-			end
-		},
-		function(_, idx)
-			coroutine.resume(co, discovered_tests[idx])
-		end
-	)
-
-	local test = coroutine.yield()
-	return test
-end
-
 function M.generate()
 	local preset, build_dir = get_build_context()
 	if not preset then
@@ -420,6 +384,42 @@ function M.run()
 	local task_name = 'Running ' .. target
 	table.insert(cmd, 1, executable_path)
 	setup_opts.task(task_name, cmd)
+end
+
+local function select_test(build_dir)
+	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
+	if result.code ~= 0 then
+		vim.notify('Test discovery failed', vim.log.levels.ERROR)
+		return nil
+	end
+
+	local json_output = vim.json.decode(result.stdout)
+	if not json_output or not json_output.tests then
+		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
+		return nil
+	end
+
+	local discovered_tests = {}
+	for _, test in ipairs(json_output.tests) do
+		table.insert(discovered_tests, test)
+	end
+
+	local co = coroutine.running()
+	vim.ui.select(
+		discovered_tests,
+		{
+			prompt = 'Tests',
+			format_item = function(item)
+				return item.name
+			end
+		},
+		function(_, idx)
+			coroutine.resume(co, discovered_tests[idx])
+		end
+	)
+
+	local test = coroutine.yield()
+	return test
 end
 
 function M.test()
