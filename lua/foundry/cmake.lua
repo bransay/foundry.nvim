@@ -203,6 +203,22 @@ local function get_default_debugger_language(build_dir, target)
 	return language
 end
 
+local function get_target_from_executable(build_dir, executable_path)
+	local targets = get_targets()
+	if not targets then
+		return nil
+	end
+
+	for _, target in ipairs(targets) do
+		local target_executable = get_default_executable_path(build_dir, target)
+		if target_executable and target_executable == executable_path then
+			return target
+		end
+	end
+
+	return nil
+end
+
 function M.generate()
 	local preset = get_option(options.PRESET)
 
@@ -434,6 +450,100 @@ function M.test()
 	setup_opts.task(task_name, cmd, build_dir)
 end
 
+function M.debug_test()
+	local preset = get_option(options.PRESET)
+	if not preset then
+		vim.notify('No preset selected', vim.log.levels.ERROR)
+		return
+	end
+
+	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
+	if not build_dir then
+		vim.notify('Invalid build directory', vim.log.levels.ERROR)
+		return
+	end
+
+	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
+	if result.code ~= 0 then
+		vim.notify('Test discovery failed', vim.log.levels.ERROR)
+		return
+	end
+
+	local json_output = vim.json.decode(result.stdout)
+	if not json_output or not json_output.tests then
+		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
+		return
+	end
+
+	local discovered_tests = {}
+	for _, test in ipairs(json_output.tests) do
+		table.insert(discovered_tests, test)
+	end
+
+	local co = coroutine.running()
+	vim.ui.select(
+		discovered_tests,
+		{
+			prompt = 'Tests',
+			format_item = function(item)
+				return item.name
+			end
+		},
+		function(_, idx)
+			coroutine.resume(co, discovered_tests[idx])
+		end
+	)
+
+	local test = coroutine.yield()
+	if not test then
+		return
+	end
+
+	if not test.command or #test.command == 0 then
+		vim.notify('Test has no command to execute', vim.log.levels.ERROR)
+		return
+	end
+
+	local executable_path = test.command[1]
+	local args = {}
+	for i = 2, #test.command do
+		table.insert(args, test.command[i])
+	end
+
+	if not vim.fn.filereadable(executable_path) then
+		executable_path = vim.fs.joinpath(build_dir, executable_path)
+		if not vim.fn.filereadable(executable_path) then
+			vim.notify('Executable path is not readable', vim.log.levels.ERROR)
+			return
+		end
+	end
+
+	local target = get_target_from_executable(build_dir, executable_path)
+	local debugger_language = get_option(options.DEBUGGER_LANGUAGE, get_default_debugger_language(build_dir, target))
+	if not debugger_language then
+		vim.notify('No debugger language available', vim.log.levels.ERROR)
+		return
+	end
+
+	local build_before_run = (get_option(options.BUILD_BEFORE_RUN, 'true') == 'true')
+	if build_before_run then
+		M.build()
+	end
+
+	local language_fts = {
+		['CXX'] = 'cpp'
+	}
+
+	local language_ft = language_fts[debugger_language] or debugger_language
+
+	local debug = require('foundry.debug')
+	local result_debug, reason = debug.debug(language_ft, executable_path, args)
+
+	if not result_debug then
+		vim.notify(reason, vim.log.levels.ERROR)
+	end
+end
+
 function M.options()
 	local menu_options = {}
 	for _, item in pairs(options) do
@@ -471,6 +581,7 @@ function M.actions()
 		{ name = 'Debug', action = M.debug },
 		{ name = 'Run', action = M.run },
 		{ name = 'Test', action = M.test },
+		{ name = 'Debug Test', action = M.debug_test },
 		{ name = 'Options', action = M.options },
 	}
 end
