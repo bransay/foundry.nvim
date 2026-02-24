@@ -65,15 +65,27 @@ local function get_default_build_dir(preset)
 	return vim.fs.joinpath(vim.fn.getcwd(), 'build', preset)
 end
 
-get_targets_func = function()
+local function get_build_context()
 	local preset = get_option(options.PRESET)
 	if not preset then
-		vim.notify('Choosing targets requires preset', vim.log.levels.ERROR)
-		return nil
+		vim.notify('No preset selected', vim.log.levels.ERROR)
+		return nil, nil
 	end
 
 	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	assert(build_dir, 'build_dir must be valid')
+	if not build_dir then
+		vim.notify('Invalid build directory', vim.log.levels.ERROR)
+		return nil, nil
+	end
+
+	return preset, build_dir
+end
+
+get_targets_func = function()
+	local _, build_dir = get_build_context()
+	if not build_dir then
+		return nil
+	end
 
 	-- use the cmake file api to find all targets
 	local api_dir = vim.fs.joinpath(build_dir, '.cmake', 'api', 'v1')
@@ -219,29 +231,17 @@ local function get_target_from_executable(build_dir, executable_path)
 	return nil
 end
 
-local function select_test()
-	local preset = get_option(options.PRESET)
-	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
-		return nil, nil
-	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	if not build_dir then
-		vim.notify('Invalid build directory', vim.log.levels.ERROR)
-		return nil, nil
-	end
-
+local function select_test(build_dir)
 	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
 	if result.code ~= 0 then
 		vim.notify('Test discovery failed', vim.log.levels.ERROR)
-		return nil, nil
+		return nil
 	end
 
 	local json_output = vim.json.decode(result.stdout)
 	if not json_output or not json_output.tests then
 		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
-		return nil, nil
+		return nil
 	end
 
 	local discovered_tests = {}
@@ -264,23 +264,14 @@ local function select_test()
 	)
 
 	local test = coroutine.yield()
-	if not test then
-		return nil, nil
-	end
-
-	return test, build_dir
+	return test
 end
 
 function M.generate()
-	local preset = get_option(options.PRESET)
-
+	local preset, build_dir = get_build_context()
 	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
 		return
 	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	assert(build_dir, 'build_dir must be valid')
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
 	vim.notify('Generating preset: ' .. preset .. '...')
@@ -297,20 +288,16 @@ function M.generate()
 end
 
 function M.build()
-	local preset = get_option(options.PRESET)
-
+	local preset, build_dir = get_build_context()
 	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
 		return
 	end
 
 	local target = get_option(options.TARGET)
 	if not target then
 		vim.notify('No active target', vim.log.levels.ERROR)
+		return
 	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	assert(build_dir, 'build_dir must be valid')
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
 	vim.notify('Building target: ' .. target .. '...')
@@ -327,15 +314,10 @@ function M.build()
 end
 
 function M.build_all()
-	local preset = get_option(options.PRESET)
-
+	local preset, build_dir = get_build_context()
 	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
 		return
 	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	assert(build_dir, 'build_dir must be valid')
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
 	vim.notify('Building preset: ' .. preset .. '...')
@@ -352,9 +334,8 @@ function M.build_all()
 end
 
 function M.debug()
-	local preset = get_option(options.PRESET)
-	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
+	local _, build_dir = get_build_context()
+	if not build_dir then
 		return
 	end
 
@@ -363,9 +344,6 @@ function M.debug()
 		vim.notify('No active target', vim.log.levels.ERROR)
 		return
 	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	assert(build_dir, 'build_dir must be valid')
 
 	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
 	if not executable_path then
@@ -407,9 +385,8 @@ function M.debug()
 end
 
 function M.run()
-	local preset = get_option(options.PRESET)
-	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
+	local _, build_dir = get_build_context()
+	if not build_dir then
 		return
 	end
 
@@ -418,9 +395,6 @@ function M.run()
 		vim.notify('No active target', vim.log.levels.ERROR)
 		return
 	end
-
-	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
-	assert(build_dir, 'build_dir must be valid')
 
 	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
 	if not executable_path then
@@ -443,13 +417,18 @@ function M.run()
 
 	vim.notify('Running ' .. target)
 
-	local task_name = 'Running ' .. preset
+	local task_name = 'Running ' .. target
 	table.insert(cmd, 1, executable_path)
 	setup_opts.task(task_name, cmd)
 end
 
 function M.test()
-	local test, build_dir = select_test()
+	local _, build_dir = get_build_context()
+	if not build_dir then
+		return
+	end
+
+	local test = select_test(build_dir)
 	if not test then
 		return
 	end
@@ -460,7 +439,12 @@ function M.test()
 end
 
 function M.debug_test()
-	local test, build_dir = select_test()
+	local _, build_dir = get_build_context()
+	if not build_dir then
+		return
+	end
+
+	local test = select_test(build_dir)
 	if not test then
 		return
 	end
