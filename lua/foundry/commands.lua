@@ -6,8 +6,42 @@ local function create_coroutine_callback(f)
 	end
 end
 
+local function get_action_map(actions)
+	local action_map = {}
+	local action_names = {}
+
+	for _, action in ipairs(actions) do
+		local cmd = action.name:gsub(' ', '')
+		action_map[cmd] = action.action
+		table.insert(action_names, cmd)
+	end
+
+	return action_map, action_names
+end
+
 function M.init(menu, module)
-	vim.api.nvim_create_user_command('FoundryMenu', create_coroutine_callback(function() menu.show(module) end), {})
+	local action_map, action_names = get_action_map(module.actions())
+
+	vim.api.nvim_create_user_command(
+		'Foundry',
+		function(opts)
+			if #opts.fargs == 0 then
+				create_coroutine_callback(function() menu.show(module) end)()
+				return
+			end
+
+			local action = action_map[table.concat(opts.fargs, '')]
+			if action then
+				create_coroutine_callback(action)()
+			else
+				vim.notify('Unknown command: ' .. table.concat(opts.fargs, ''), vim.log.levels.ERROR)
+			end
+		end,
+		{
+			nargs = '*',
+			complete = function() return action_names end,
+		}
+	)
 end
 
 return M
