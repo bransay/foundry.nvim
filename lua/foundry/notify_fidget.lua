@@ -2,10 +2,6 @@ local NOTIFICATION_TITLE = "foundry"
 
 local M = {}
 
---- @class NotifyOpts
---- @field level? number
---- @field keep? boolean
-
 --- @param msg string
 --- @param opts? NotifyOpts
 --- @return integer id
