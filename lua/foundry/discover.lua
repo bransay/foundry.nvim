@@ -59,7 +59,7 @@ function M.detect()
 	local module = find_project_module_by_name(name)
 	if module then
 		vim.schedule(function()
-			vim.notify('Detected project: ' .. name, vim.log.levels.INFO)
+			vim.notify('Foundry active: ' .. name, vim.log.levels.INFO)
 		end)
 	end
 	return module
