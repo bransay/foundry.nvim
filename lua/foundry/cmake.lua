@@ -1,5 +1,12 @@
 local M = {}
 
+M.name = 'CMake'
+
+function M.detect(root)
+	local cmake_file = vim.fs.joinpath(root, 'CMakeLists.txt')
+	return vim.fn.filereadable(cmake_file) == 1
+end
+
 local setup_opts = require('foundry').opts
 local foundry_options = require('foundry.options')
 local foundry_debug = require('foundry.debug')

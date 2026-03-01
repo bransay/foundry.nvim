@@ -10,10 +10,13 @@ function M.setup(opts)
 
 	M.opts = vim.tbl_deep_extend('force', default_opts, opts)
 
-	-- project modules
-	-- TODO: this should be detected, not just used as is
-	local cmake = require('foundry.cmake')
-	local project_module = cmake
+	local discover = require('foundry.discover')
+	local project_module = discover.detect()
+
+	if not project_module then
+		vim.notify('No project detected', vim.log.levels.WARN)
+		return
+	end
 
 	local menu = require('foundry.menu')
 	require('foundry.commands').init(menu, project_module)
