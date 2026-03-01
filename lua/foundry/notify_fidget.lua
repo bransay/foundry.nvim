@@ -1,9 +1,3 @@
--- Try to use fidget backend, fall back to vanilla
-if pcall(require, "fidget") then
-	return require("foundry.notify_fidget")
-end
-
--- Vanilla fallback (vim.notify)
 local NOTIFICATION_TITLE = "foundry"
 
 local M = {}
