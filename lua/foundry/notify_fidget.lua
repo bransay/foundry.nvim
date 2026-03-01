@@ -18,6 +18,15 @@ local active_notifications = {}
 -- Create spinner animation for persistent notifications (1 second cycle)
 local spinner_anime = fidget_spinner.animate("dots_negative", 1)
 
+-- Build notification message with optional spinner prefix
+local function with_spinner(msg, spinner)
+	if not spinner then
+		return msg
+	end
+	local spinner_frame = spinner_anime(vim.loop.now() / 1000)
+	return string.format("%s %s", spinner_frame, msg)
+end
+
 --- @param msg string
 --- @param opts? NotifyOpts
 --- @return integer? id Notification handle (only for persistent notifications)
@@ -40,7 +49,7 @@ function M.notify(msg, opts)
 		spinner = opts.spinner,
 	}
 
-	fidget_notify.notify(msg, level, {
+	fidget_notify.notify(with_spinner(msg, opts.spinner), level, {
 		group = NOTIFICATION_GROUP,
 		key = id,
 		ttl = math.huge,
@@ -61,13 +70,7 @@ function M.update(id, msg)
 		return
 	end
 
-	local full_msg = msg
-	if notif.spinner then
-		local spinner_frame = spinner_anime(vim.loop.now() / 1000)
-		full_msg = string.format("%s %s", spinner_frame, msg)
-	end
-
-	fidget_notify.notify(full_msg, notif.level, {
+	fidget_notify.notify(with_spinner(msg, notif.spinner), notif.level, {
 		group = NOTIFICATION_GROUP,
 		key = id,
 		update_only = true,
