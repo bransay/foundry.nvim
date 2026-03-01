@@ -250,15 +250,15 @@ function M.generate()
 		return
 	end
 
-	-- TODO: let's do persistent notifications that last until the preset is complete
-	foundry_notify.notify('Generating preset: ' .. preset .. '...', { })
-
-	-- kick off generating task
 	local task_name = 'Generating preset: ' .. preset
+	local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+
 	local result = setup_opts.task(task_name, { 'cmake', '--preset', preset, '-B', build_dir })
 
+	foundry_notify.dismiss(id)
+
 	if result then
-		foundry_notify.notify(task_name .. ' succeeded', { })
+		foundry_notify.notify(task_name .. ' succeeded', { level = vim.log.levels.INFO })
 	else
 		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
 	end
@@ -276,15 +276,15 @@ function M.build()
 		return
 	end
 
-	-- TODO: let's do persistent notifications that last until the preset is complete
-	foundry_notify.notify('Building target: ' .. target .. '...', { })
-
-	-- kick off generating task
 	local task_name = 'Building target: ' .. target
+	local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+
 	local result = setup_opts.task(task_name, { 'cmake', '--build', build_dir, '--target', target })
 
+	foundry_notify.dismiss(id)
+
 	if result then
-		foundry_notify.notify(task_name .. ' succeeded', { })
+		foundry_notify.notify(task_name .. ' succeeded', { level = vim.log.levels.INFO })
 	else
 		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
 	end
@@ -296,15 +296,15 @@ function M.build_all()
 		return
 	end
 
-	-- TODO: let's do persistent notifications that last until the preset is complete
-	foundry_notify.notify('Building preset: ' .. preset .. '...', { })
-
-	-- kick off generating task
 	local task_name = 'Building preset: ' .. preset
+	local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+
 	local result = setup_opts.task(task_name, { 'cmake', '--build', build_dir })
 
+	foundry_notify.dismiss(id)
+
 	if result then
-		foundry_notify.notify(task_name .. ' succeeded', { })
+		foundry_notify.notify(task_name .. ' succeeded', { level = vim.log.levels.INFO })
 	else
 		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
 	end
