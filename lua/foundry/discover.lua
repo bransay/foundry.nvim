@@ -56,7 +56,13 @@ end
 
 function M.detect()
 	local name = get_option(options.PROJECT, get_default_project_module())
-	return find_project_module_by_name(name)
+	local module = find_project_module_by_name(name)
+	if module then
+		vim.schedule(function()
+			vim.notify('Detected project: ' .. name, vim.log.levels.INFO)
+		end)
+	end
+	return module
 end
 
 return M
