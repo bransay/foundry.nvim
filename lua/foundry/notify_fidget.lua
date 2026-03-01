@@ -1,6 +1,13 @@
 local NOTIFICATION_TITLE = "Foundry"
+local NOTIFICATION_GROUP = "foundry"
 
 local fidget_notify = require("fidget.notification")
+
+-- Register our notification group with a custom name
+fidget_notify.set_config(NOTIFICATION_GROUP, {
+	name = NOTIFICATION_TITLE,
+	icon = "󰢛",
+}, true)
 
 local M = {}
 
@@ -21,6 +28,7 @@ function M.notify(msg, opts)
 
 	local fidget_opts = {
 		annote = NOTIFICATION_TITLE,
+		group = NOTIFICATION_GROUP,
 		key = id,
 	}
 
@@ -40,6 +48,7 @@ function M.update(id, msg)
 
 	local fidget_opts = {
 		annote = NOTIFICATION_TITLE,
+		group = NOTIFICATION_GROUP,
 		key = id,
 		update_only = true,
 	}
@@ -51,12 +60,7 @@ end
 function M.dismiss(id)
 	active_notifications[id] = nil
 
-	local fidget_opts = {
-		key = id,
-		update_only = true,
-	}
-
-	fidget_notify.notify(nil, vim.log.levels.INFO, fidget_opts)
+	fidget_notify.remove(NOTIFICATION_GROUP, id)
 end
 
 return M
