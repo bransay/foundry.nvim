@@ -4,8 +4,6 @@ if pcall(require, "fidget") then
 end
 
 -- Vanilla fallback (vim.notify)
-local NOTIFICATION_TITLE = "foundry"
-
 local M = {}
 
 --- @class NotifyOpts
@@ -14,14 +12,21 @@ local M = {}
 
 --- @param msg string
 --- @param opts? NotifyOpts
---- @return integer id
-function M.notify(msg, opts) end
+--- @return nil
+function M.notify(msg, opts)
+	opts = opts or {}
+	local level = opts.level or vim.log.levels.INFO
+	vim.notify(msg, level)
+	return nil
+end
 
---- @param id integer
+--- @param _ integer
 --- @param msg string
-function M.update(id, msg) end
+function M.update(_, msg)
+	M.notify(msg, { level = vim.log.levels.INFO })
+end
 
---- @param id integer
-function M.dismiss(id) end
+--- @param _ integer
+function M.dismiss(_) end
 
 return M
