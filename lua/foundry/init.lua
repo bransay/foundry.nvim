@@ -14,7 +14,9 @@ function M.setup(opts)
 	local project_module = discover.detect()
 
 	if not project_module then
-		vim.notify('No project detected', vim.log.levels.WARN)
+		vim.schedule(function()
+			vim.notify('No project detected', vim.log.levels.WARN)
+		end)
 		return
 	end
 

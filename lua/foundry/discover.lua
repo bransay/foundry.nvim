@@ -2,7 +2,7 @@ local M = {}
 
 -- Project modules are registered here
 local project_modules = {
-	require('foundry.cmake'),
+	['CMake'] = require('foundry.cmake'),
 }
 
 local foundry_options = require('foundry.options')
@@ -14,9 +14,9 @@ local function get_detected_project_modules()
 	end
 	local root = vim.fn.getcwd()
 	local detected = {}
-	for _, module in ipairs(project_modules) do
+	for name, module in pairs(project_modules) do
 		if module.detect(root) then
-			table.insert(detected, module)
+			table.insert(detected, name)
 		end
 	end
 	cached_detected_project_modules = detected
@@ -24,12 +24,7 @@ local function get_detected_project_modules()
 end
 
 local function get_project_type_picker_options()
-	local detected = get_detected_project_modules()
-	local names = {}
-	for _, module in ipairs(detected) do
-		table.insert(names, module.name)
-	end
-	return names
+	return get_detected_project_modules()
 end
 
 local options = {
@@ -50,18 +45,13 @@ end
 local function get_default_project_module()
 	local detected = get_detected_project_modules()
 	if #detected == 1 then
-		return detected[1].name
+		return detected[1]
 	end
 	return nil
 end
 
 local function find_project_module_by_name(name)
-	for _, module in ipairs(project_modules) do
-		if module.name == name then
-			return module
-		end
-	end
-	return nil
+	return project_modules[name]
 end
 
 function M.detect()

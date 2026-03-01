@@ -1,7 +1,5 @@
 local M = {}
 
-M.name = 'CMake'
-
 function M.detect(root)
 	local cmake_file = vim.fs.joinpath(root, 'CMakeLists.txt')
 	return vim.fn.filereadable(cmake_file) == 1
