@@ -37,7 +37,7 @@ function M.notify(msg, opts)
 
 	active_notifications[id] = {
 		level = level,
-		msg = msg,
+		spinner = opts.spinner,
 	}
 
 	fidget_notify.notify(msg, level, {
@@ -61,9 +61,11 @@ function M.update(id, msg)
 		return
 	end
 
-	-- Prepend spinner frame to message
-	local spinner_frame = spinner_anime(vim.loop.now() / 1000)
-	local full_msg = string.format("%s %s", spinner_frame, msg)
+	local full_msg = msg
+	if notif.spinner then
+		local spinner_frame = spinner_anime(vim.loop.now() / 1000)
+		full_msg = string.format("%s %s", spinner_frame, msg)
+	end
 
 	fidget_notify.notify(full_msg, notif.level, {
 		group = NOTIFICATION_GROUP,

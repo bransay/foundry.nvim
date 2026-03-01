@@ -9,6 +9,7 @@ local M = {}
 --- @class NotifyOpts
 --- @field level? number
 --- @field keep? boolean
+--- @field spinner? boolean Show spinner animation (only when keep=true)
 
 --- @param msg string
 --- @param opts? NotifyOpts
