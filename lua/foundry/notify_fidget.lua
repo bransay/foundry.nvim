@@ -16,7 +16,7 @@ local next_id = 0
 local active_notifications = {}
 
 -- Create spinner animation for persistent notifications (1 second cycle)
-local spinner_anime = fidget_spinner.animate("dots", 1)
+local spinner_anime = fidget_spinner.animate("dots_negative", 1)
 
 --- @param msg string
 --- @param opts? NotifyOpts
