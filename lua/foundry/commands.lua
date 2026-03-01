@@ -1,4 +1,5 @@
 local M = {}
+local foundry_notify = require('foundry.notify')
 
 local function create_coroutine_callback(f)
 	return function()
@@ -34,7 +35,7 @@ function M.init(menu, module)
 			if action then
 				create_coroutine_callback(action)()
 			else
-				vim.notify('Unknown command: ' .. table.concat(opts.fargs, ''), vim.log.levels.ERROR)
+				foundry_notify.notify('Unknown command: ' .. table.concat(opts.fargs, ''), { level = vim.log.levels.ERROR })
 			end
 		end,
 		{

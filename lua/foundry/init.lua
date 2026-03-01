@@ -1,4 +1,5 @@
 local M = {}
+local foundry_notify = require('foundry.notify')
 
 function M.setup(opts)
 	coroutine.wrap(function()
@@ -16,7 +17,7 @@ function M.setup(opts)
 
 		if not project_module then
 			vim.schedule(function()
-				vim.notify('No project detected', vim.log.levels.WARN)
+				foundry_notify.notify('No project detected', { level = vim.log.levels.WARN })
 			end)
 			return
 		end

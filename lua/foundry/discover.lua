@@ -1,4 +1,5 @@
 local M = {}
+local foundry_notify = require('foundry.notify')
 
 -- Project modules are registered here
 local project_modules = {
@@ -59,7 +60,7 @@ function M.detect()
 	local module = find_project_module_by_name(name)
 	if module then
 		vim.schedule(function()
-			vim.notify('Foundry active: ' .. name, vim.log.levels.INFO)
+			foundry_notify.notify('Foundry active: ' .. name, { level = vim.log.levels.INFO })
 		end)
 	end
 	return module

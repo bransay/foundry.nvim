@@ -1,4 +1,5 @@
 local M = {}
+local foundry_notify = require('foundry.notify')
 
 function M.detect(root)
 	local cmake_file = vim.fs.joinpath(root, 'CMakeLists.txt')
@@ -80,13 +81,13 @@ end
 local function get_build_context()
 	local preset = get_option(options.PRESET)
 	if not preset then
-		vim.notify('No preset selected', vim.log.levels.ERROR)
+		foundry_notify.notify('No preset selected', { level = vim.log.levels.ERROR })
 		return nil, nil
 	end
 
 	local build_dir = get_option(options.BUILD_DIR, get_default_build_dir(preset))
 	if not build_dir then
-		vim.notify('Invalid build directory', vim.log.levels.ERROR)
+		foundry_notify.notify('Invalid build directory', { level = vim.log.levels.ERROR })
 		return nil, nil
 	end
 
@@ -115,13 +116,13 @@ get_targets_func = function()
 	codemodel_file = vim.fn.glob(codemodel_file, true, true)
 
 	if #codemodel_file == 0 then
-		vim.notify('Cmake file api failure - no response', vim.log.levels.ERROR)
+		foundry_notify.notify('Cmake file api failure - no response', { level = vim.log.levels.ERROR })
 		return nil
 	end
 	codemodel_file = codemodel_file[1]
 
 	if not vim.fn.filereadable(codemodel_file) then
-		vim.notify('Cmake file api failure - could not read response', vim.log.levels.ERROR)
+		foundry_notify.notify('Cmake file api failure - could not read response', { level = vim.log.levels.ERROR })
 		return nil
 	end
 
@@ -129,7 +130,7 @@ get_targets_func = function()
 	contents = table.concat(contents, '\n')
 
 	local function invalid_response()
-		vim.notify('Cmake file api failure - invalid response', vim.log.levels.ERROR)
+		foundry_notify.notify('Cmake file api failure - invalid response', { level = vim.log.levels.ERROR })
 		return nil
 	end
 
@@ -250,16 +251,16 @@ function M.generate()
 	end
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
-	vim.notify('Generating preset: ' .. preset .. '...')
+	foundry_notify.notify('Generating preset: ' .. preset .. '...', { })
 
 	-- kick off generating task
 	local task_name = 'Generating preset: ' .. preset
 	local result = setup_opts.task(task_name, { 'cmake', '--preset', preset, '-B', build_dir })
 
 	if result then
-		vim.notify(task_name .. ' succeeded')
+		foundry_notify.notify(task_name .. ' succeeded', { })
 	else
-		vim.notify(task_name .. ' failed', vim.log.levels.ERROR)
+		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
 	end
 end
 
@@ -271,21 +272,21 @@ function M.build()
 
 	local target = get_option(options.TARGET)
 	if not target then
-		vim.notify('No active target', vim.log.levels.ERROR)
+		foundry_notify.notify('No active target', { level = vim.log.levels.ERROR })
 		return
 	end
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
-	vim.notify('Building target: ' .. target .. '...')
+	foundry_notify.notify('Building target: ' .. target .. '...', { })
 
 	-- kick off generating task
 	local task_name = 'Building target: ' .. target
 	local result = setup_opts.task(task_name, { 'cmake', '--build', build_dir, '--target', target })
 
 	if result then
-		vim.notify(task_name .. ' succeeded')
+		foundry_notify.notify(task_name .. ' succeeded', { })
 	else
-		vim.notify(task_name .. ' failed', vim.log.levels.ERROR)
+		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
 	end
 end
 
@@ -296,16 +297,16 @@ function M.build_all()
 	end
 
 	-- TODO: let's do persistent notifications that last until the preset is complete
-	vim.notify('Building preset: ' .. preset .. '...')
+	foundry_notify.notify('Building preset: ' .. preset .. '...', { })
 
 	-- kick off generating task
 	local task_name = 'Building preset: ' .. preset
 	local result = setup_opts.task(task_name, { 'cmake', '--build', build_dir })
 
 	if result then
-		vim.notify(task_name .. ' succeeded')
+		foundry_notify.notify(task_name .. ' succeeded', { })
 	else
-		vim.notify(task_name .. ' failed', vim.log.levels.ERROR)
+		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
 	end
 end
 
@@ -317,18 +318,18 @@ local function get_executable_context()
 
 	local target = get_option(options.TARGET)
 	if not target then
-		vim.notify('No active target', vim.log.levels.ERROR)
+		foundry_notify.notify('No active target', { level = vim.log.levels.ERROR })
 		return nil, nil, nil
 	end
 
 	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(build_dir, target))
 	if not executable_path then
-		vim.notify('No executable to run', vim.log.levels.ERROR)
+		foundry_notify.notify('No executable to run', { level = vim.log.levels.ERROR })
 		return nil, nil, nil
 	end
 
 	if not vim.fn.filereadable(executable_path) then
-		vim.notify('Executable path is not readable', vim.log.levels.ERROR)
+		foundry_notify.notify('Executable path is not readable', { level = vim.log.levels.ERROR })
 		return nil, nil, nil
 	end
 
@@ -343,7 +344,7 @@ end
 local function launch_debugger(executable_path, args, default_language)
 	local debugger_language = get_option(options.DEBUGGER_LANGUAGE, default_language)
 	if not debugger_language then
-		vim.notify('No debugger language available', vim.log.levels.ERROR)
+		foundry_notify.notify('No debugger language available', { level = vim.log.levels.ERROR })
 		return
 	end
 
@@ -353,7 +354,7 @@ local function launch_debugger(executable_path, args, default_language)
 	local result, reason = debug.debug(language_ft, executable_path, args)
 
 	if not result then
-		vim.notify(reason, vim.log.levels.ERROR)
+		foundry_notify.notify(reason, { level = vim.log.levels.ERROR })
 	end
 end
 
@@ -378,7 +379,7 @@ function M.run()
 	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '')
 	local cmd = vim.fn.split(arguments, ' ')
 
-	vim.notify('Running ' .. target)
+	foundry_notify.notify('Running ' .. target, { })
 
 	local task_name = 'Running ' .. target
 	table.insert(cmd, 1, executable_path)
@@ -388,13 +389,13 @@ end
 local function select_test(build_dir)
 	local result = vim.system({ "ctest", "--show-only=json-v1" }, {cwd = build_dir}):wait()
 	if result.code ~= 0 then
-		vim.notify('Test discovery failed', vim.log.levels.ERROR)
+		foundry_notify.notify('Test discovery failed', { level = vim.log.levels.ERROR })
 		return nil
 	end
 
 	local json_output = vim.json.decode(result.stdout)
 	if not json_output or not json_output.tests then
-		vim.notify('Invalid JSON output from ctest', vim.log.levels.ERROR)
+		foundry_notify.notify('Invalid JSON output from ctest', { level = vim.log.levels.ERROR })
 		return nil
 	end
 
@@ -449,7 +450,7 @@ function M.debug_test()
 	end
 
 	if not test.command or #test.command == 0 then
-		vim.notify('Test has no command to execute', vim.log.levels.ERROR)
+		foundry_notify.notify('Test has no command to execute', { level = vim.log.levels.ERROR })
 		return
 	end
 
@@ -462,7 +463,7 @@ function M.debug_test()
 	if not vim.fn.filereadable(executable_path) then
 		executable_path = vim.fs.joinpath(build_dir, executable_path)
 		if not vim.fn.filereadable(executable_path) then
-			vim.notify('Executable path is not readable', vim.log.levels.ERROR)
+			foundry_notify.notify('Executable path is not readable', { level = vim.log.levels.ERROR })
 			return
 		end
 	end
