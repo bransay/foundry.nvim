@@ -1,8 +1,8 @@
-# foundry.nvim
+# 🔨 foundry.nvim
 
 Forge your code without leaving Neovim — complete build, run, and debug workflow.
 
-## Features
+## ✨ Features
 
 - **Build System Integration** - Seamless workflow for building and running projects
 - **Debugger Support** - Integrated debugging workflow with DAP
@@ -11,7 +11,7 @@ Forge your code without leaving Neovim — complete build, run, and debug workfl
 - **Test Integration** - Discovery and execution of tests with test-specific debugging
 - **Module-Based Architecture** - Extensible design supporting multiple build systems (CMake first, more coming)
 
-## Requirements
+## 📦 Requirements
 
 Foundry works out of the box with no required dependencies. However, optional integrations enhance the experience:
 
@@ -23,7 +23,7 @@ Foundry works out of the box with no required dependencies. However, optional in
 - CMake 3.19+ (for presets support)
 - C/C++ compiler toolchain
 
-## Installation
+## 💾 Installation
 
 ### lazy.nvim
 ```lua
@@ -57,7 +57,7 @@ Plug 'bransay/foundry.nvim'
 lua require('foundry').setup()
 ```
 
-## Setup
+## ⚙️ Setup
 
 Minimal setup with defaults:
 
@@ -79,7 +79,7 @@ require('foundry').setup({
 })
 ```
 
-## Usage
+## 🚀 Usage
 
 ### Opening the Menu
 
@@ -108,7 +108,7 @@ You can also run actions directly:
 
 Tab completion is available for all subcommands.
 
-## CMake Workflow
+## 🔧 CMake Workflow
 
 Foundry currently supports CMake projects out of the box. Here's a typical workflow:
 
@@ -158,7 +158,7 @@ Run `:Foundry Options` to configure:
 - **Debugger Language** - Language for debugger (C++, C, etc.)
 - **Build Before Run** - Automatically rebuild before running
 
-## Integrations
+## 🔌 Integrations
 
 ### Fidget.nvim
 
@@ -175,7 +175,7 @@ When overseer.nvim is installed, Foundry uses it as the task runner for better t
 
 Without overseer, Foundry uses a simple `vim.system()`-based runner.
 
-## Extending Foundry
+## 🛠️ Extending Foundry
 
 Foundry is designed to support multiple build systems through project modules.
 
@@ -225,6 +225,6 @@ When Foundry starts:
 
 The action names (with spaces removed) become subcommands: `:Foundry Build`, `:Foundry Run`, etc.
 
-## License
+## 📄 License
 
 MIT
