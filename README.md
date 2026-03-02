@@ -1,4 +1,4 @@
-# 🔨 foundry.nvim
+# 🦾 foundry.nvim
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Neovim](https://img.shields.io/badge/Neovim-0.8+-green.svg)](https://neovim.io)
