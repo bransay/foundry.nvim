@@ -175,22 +175,55 @@ When overseer.nvim is installed, Foundry uses it as the task runner for better t
 
 Without overseer, Foundry uses a simple `vim.system()`-based runner.
 
-## Architecture
+## Extending Foundry
 
-Foundry is designed as a modular framework:
+Foundry is designed to support multiple build systems through project modules.
 
-- **Core** (`init.lua`, `commands.lua`) - Command registration and initialization
-- **Project Detection** (`discover.lua`) - Automatic project type detection
-- **Modules** (`cmake.lua`, etc.) - Build system-specific implementations
-- **Notifications** (`notify.lua`) - Unified notification interface with backend detection
-- **Options** (`options.lua`) - Configuration and user prompts
+### Project Module Interface
 
-## Coming Soon
+A project module must implement two functions:
 
-- Additional build system support (Make, Meson, etc.)
-- Enhanced task UI integration
-- More debugging features
-- Workspace/multi-project support
+```lua
+local M = {}
+
+-- Detect if this project type exists at the given root directory
+function M.detect(root)
+  -- Return true if project detected, false otherwise
+  return vim.fn.filereadable(root .. '/CMakeLists.txt') == 1
+end
+
+-- Return list of available actions for this project type
+function M.actions()
+  return {
+    { name = 'Build', action = M.build },
+    { name = 'Run', action = M.run },
+    -- ... more actions
+  }
+end
+
+return M
+```
+
+### Registering a Module
+
+Add your module to the registry in `lua/foundry/discover.lua`:
+
+```lua
+local project_modules = {
+  ['CMake'] = require('foundry.cmake'),
+  ['MyBuildSystem'] = require('foundry.my_build_system'),
+}
+```
+
+### Detection Behavior
+
+When Foundry starts:
+1. Calls `detect(root)` on all registered modules
+2. If exactly one module detects → auto-activated
+3. If multiple modules detect → user selects from detected list
+4. Selected module's `actions()` populate the `:Foundry` menu
+
+The action names (with spaces removed) become subcommands: `:Foundry Build`, `:Foundry Run`, etc.
 
 ## License
 
