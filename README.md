@@ -164,9 +164,8 @@ Run `:Foundry Options` to configure:
 
 When fidget.nvim is installed, Foundry uses it for all notifications:
 
-- **Branded notifications** - All messages show the Foundry anvil icon (󰢛)
-- **Spinner animations** - Long-running operations display animated spinners
-- **Color-coded levels** - INFO, WARN, ERROR are properly styled
+- **Persistent notifications** - Long-running operations stay visible until completion, so you know immediately when a task is still running
+- **Grouped notifications** - All Foundry messages are grouped together under the anvil icon (󰢛), keeping them separate from other plugin notifications
 
 Without fidget, Foundry falls back to Neovim's built-in `vim.notify()`.
 
