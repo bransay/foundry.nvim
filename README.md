@@ -28,7 +28,7 @@ Foundry works out of the box with no required dependencies. However, optional in
 ### lazy.nvim
 ```lua
 {
-  'bryeo/foundry.nvim',
+  'bransay/foundry.nvim',
   dependencies = {
     'j-hui/fidget.nvim',        -- Optional but recommended
     'stevearc/overseer.nvim',   -- Optional but recommended
@@ -42,7 +42,7 @@ Foundry works out of the box with no required dependencies. However, optional in
 ### packer.nvim
 ```lua
 use {
-  'bryeo/foundry.nvim',
+  'bransay/foundry.nvim',
   config = function()
     require('foundry').setup()
   end,
