@@ -171,11 +171,7 @@ Without fidget, Foundry falls back to Neovim's built-in `vim.notify()`.
 
 ### Overseer.nvim
 
-When overseer.nvim is installed, Foundry uses it as the task runner:
-
-- **Task management UI** - View and manage running tasks
-- **Better output handling** - Rich task output with filtering
-- **Task persistence** - Tasks survive across sessions
+When overseer.nvim is installed, Foundry uses it as the task runner for better task management and output handling.
 
 Without overseer, Foundry uses a simple `vim.system()`-based runner.
 
