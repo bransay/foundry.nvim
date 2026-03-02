@@ -1,13 +1,13 @@
 # foundry.nvim
 
-Foundry is your project's forge — it handles the entire build, run, and debug workflow so you never leave Neovim.
+Forge your code without leaving Neovim — complete build, run, and debug workflow.
 
 ## Features
 
 - **Build System Integration** - Seamless workflow for building and running projects
-- **Smart Project Detection** - Automatically detects project type and configures available actions
-- **Persistent Notifications** - Real-time feedback with spinner animations for long-running operations
 - **Debugger Support** - Integrated debugging workflow with DAP
+- **Persistent Notifications** - Real-time feedback with spinner animations for long-running operations
+- **Smart Project Detection** - Automatically detects project type and configures available actions
 - **Test Integration** - Discovery and execution of tests with test-specific debugging
 - **Module-Based Architecture** - Extensible design supporting multiple build systems (CMake first, more coming)
 
