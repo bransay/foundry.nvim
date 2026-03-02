@@ -1,6 +1,6 @@
 # 🦾 foundry.nvim
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Neovim](https://img.shields.io/badge/Neovim-0.8+-green.svg)](https://neovim.io)
 [![Status](https://img.shields.io/badge/Status-Alpha-orange.svg)]()
 
@@ -231,4 +231,4 @@ The action names (with spaces removed) become subcommands: `:Foundry Build`, `:F
 
 ## 📄 License
 
-MIT
+GPL v3
