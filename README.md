@@ -51,7 +51,7 @@ use {
 
 ### vim-plug
 ```vim
-Plug 'bryeo/foundry.nvim'
+Plug 'bransay/foundry.nvim'
 
 " In your init.vim or init.lua
 lua require('foundry').setup()
