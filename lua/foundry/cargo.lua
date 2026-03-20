@@ -8,54 +8,19 @@ function M.detect(root)
 end
 
 local function profile_picker(prompt, default)
-	local BUILTIN_PROFILES = { 'dev', 'release', 'test', 'bench' }
-	local co = coroutine.running()
-
-	local choices = {}
-	for _, profile in ipairs(BUILTIN_PROFILES) do
-		table.insert(choices, { profile, profile })
+	local result = foundry_options.select_picker(function()
+		return {
+			{ 'dev', 'dev' },
+			{ 'release', 'release' },
+			{ 'test', 'test' },
+			{ 'bench', 'bench' },
+			{ '__custom__', 'User-defined' },
+		}
+	end)(prompt, default)
+	if result == '__custom__' then
+		return foundry_options.input_picker()(prompt, default)
 	end
-	table.insert(choices, { '__custom__', 'Custom...' })
-
-	local display_choices = {}
-	for _, item in ipairs(choices) do
-		local value = item[1]
-		local display = item[2]
-		local display_text = display
-		if default and default == value then
-			display_text = display .. ' '
-		end
-		table.insert(display_choices, { display_text, value })
-	end
-
-	vim.ui.select(
-		display_choices,
-		{
-			prompt = prompt,
-			format_item = function(item)
-				return item[1]
-			end
-		},
-		function(selected)
-			if not selected then
-				coroutine.resume(co, nil)
-				return
-			end
-
-			if selected[2] == '__custom__' then
-				vim.ui.input(
-					{ prompt = 'Enter profile name: ', default = default or '' },
-					function(input)
-						coroutine.resume(co, input)
-					end
-				)
-			else
-				coroutine.resume(co, selected[2])
-			end
-		end
-	)
-
-	return coroutine.yield()
+	return result
 end
 
 local function get_target_options()
