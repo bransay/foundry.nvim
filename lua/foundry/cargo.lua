@@ -24,7 +24,34 @@ local function profile_picker(prompt, default)
 end
 
 local function get_target_options()
-	return {}
+	local result = vim.system({ 'cargo', 'metadata', '--format-version=1', '--no-deps' }, { cwd = vim.fn.getcwd() }):wait()
+
+	if result.code ~= 0 then
+		foundry_notify.notify('cargo metadata failed: ' .. (result.stderr or 'unknown error'), { level = vim.log.levels.ERROR })
+		return {}
+	end
+
+	local metadata = vim.json.decode(result.stdout)
+	if not metadata then
+		foundry_notify.notify('cargo metadata returned invalid JSON', { level = vim.log.levels.ERROR })
+		return {}
+	end
+
+	local targets = {}
+	for _, package in ipairs(metadata.packages or {}) do
+		for _, target in ipairs(package.targets or {}) do
+			if vim.list_contains(target.kind or {}, 'bin') then
+				table.insert(targets, { target.name, target.name })
+			end
+		end
+	end
+
+	if #targets == 0 then
+		return {}
+	end
+
+	table.sort(targets, function(a, b) return a[1] < b[1] end)
+	return targets
 end
 
 local options = {
