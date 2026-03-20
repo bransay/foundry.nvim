@@ -1,6 +1,7 @@
 local M = {}
 local foundry_notify = require('foundry.notify')
 local foundry_options = require('foundry.options')
+local setup_opts = require('foundry').opts
 
 function M.detect(root)
 	local cargo_file = vim.fs.joinpath(root, 'Cargo.toml')
@@ -74,8 +75,38 @@ local function get_option(option, default, show_ui)
 	return foundry_options.get(option[1], option[2], opts)
 end
 
+local function get_build_context()
+	local profile = get_option(options.PROFILE)
+	if not profile then
+		foundry_notify.notify('No profile selected', { level = vim.log.levels.ERROR })
+		return nil, nil
+	end
+
+	local target = get_option(options.TARGET)
+	if not target then
+		foundry_notify.notify('No target selected', { level = vim.log.levels.ERROR })
+		return nil, nil
+	end
+
+	return profile, target
+end
+
 function M.build()
-	foundry_notify.notify('Build triggered', { level = vim.log.levels.INFO })
+	local profile, target = get_build_context()
+	if not profile or not target then
+		return
+	end
+
+	local task_name = 'Building ' .. target .. ' (' .. profile .. ')'
+	local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+	local result = setup_opts.task(task_name, { 'cargo', 'build', '--profile', profile, '--bin', target })
+	foundry_notify.dismiss(id)
+
+	if result then
+		foundry_notify.notify(task_name .. ' succeeded', { level = vim.log.levels.INFO })
+	else
+		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
+	end
 end
 
 function M.options()
