@@ -8,7 +8,25 @@ function M.detect(root)
 end
 
 local function get_profile_options()
-	return {}
+	local result = vim.system({ 'cargo', 'metadata', '--format-version=1', '--no-deps' }, { cwd = vim.fn.getcwd() }):wait()
+
+	if result.code ~= 0 then
+		return {}
+	end
+
+	local metadata = vim.json.decode(result.stdout)
+	if not metadata or not metadata.profiles then
+		return {}
+	end
+
+	local results = {}
+	for profile_name, _ in pairs(metadata.profiles) do
+		table.insert(results, { profile_name, profile_name })
+	end
+
+	table.sort(results, function(a, b) return a[1] < b[1] end)
+
+	return results
 end
 
 local function get_target_options()
