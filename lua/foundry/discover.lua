@@ -4,6 +4,7 @@ local foundry_notify = require('foundry.notify')
 -- Project modules are registered here
 local project_modules = {
 	['CMake'] = require('foundry.cmake'),
+	['Cargo'] = require('foundry.cargo'),
 }
 
 local foundry_options = require('foundry.options')
