@@ -57,9 +57,39 @@ function M.build()
 	foundry_notify.notify('Build triggered', { level = vim.log.levels.INFO })
 end
 
+function M.options()
+	local menu_options = {}
+	for _, item in pairs(options) do
+		table.insert(menu_options, item)
+	end
+
+	local co = coroutine.running()
+	vim.ui.select(
+		menu_options,
+		{
+			prompt = 'Options',
+			format_item = function(item)
+				return item[2]
+			end
+		},
+		function(_, idx)
+			coroutine.resume(co, idx)
+		end
+	)
+
+	local choice = coroutine.yield()
+	if not choice then
+		return
+	end
+	choice = menu_options[choice]
+
+	get_option(choice, nil, true)
+end
+
 function M.actions()
 	return {
 		{ name = 'Build', action = M.build },
+		{ name = 'Options', action = M.options },
 	}
 end
 
