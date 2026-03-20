@@ -7,26 +7,55 @@ function M.detect(root)
 	return vim.fn.filereadable(cargo_file) == 1
 end
 
-local function get_profile_options()
-	local result = vim.system({ 'cargo', 'metadata', '--format-version=1', '--no-deps' }, { cwd = vim.fn.getcwd() }):wait()
+local function profile_picker(prompt, default)
+	local BUILTIN_PROFILES = { 'dev', 'release', 'test', 'bench' }
+	local co = coroutine.running()
 
-	if result.code ~= 0 then
-		return {}
+	local choices = {}
+	for _, profile in ipairs(BUILTIN_PROFILES) do
+		table.insert(choices, { profile, profile })
+	end
+	table.insert(choices, { '__custom__', 'Custom...' })
+
+	local display_choices = {}
+	for _, item in ipairs(choices) do
+		local value = item[1]
+		local display = item[2]
+		local display_text = display
+		if default and default == value then
+			display_text = display .. ' '
+		end
+		table.insert(display_choices, { display_text, value })
 	end
 
-	local metadata = vim.json.decode(result.stdout)
-	if not metadata or not metadata.profiles then
-		return {}
-	end
+	vim.ui.select(
+		display_choices,
+		{
+			prompt = prompt,
+			format_item = function(item)
+				return item[1]
+			end
+		},
+		function(selected)
+			if not selected then
+				coroutine.resume(co, nil)
+				return
+			end
 
-	local results = {}
-	for profile_name, _ in pairs(metadata.profiles) do
-		table.insert(results, { profile_name, profile_name })
-	end
+			if selected[2] == '__custom__' then
+				vim.ui.input(
+					{ prompt = 'Enter profile name: ', default = default or '' },
+					function(input)
+						coroutine.resume(co, input)
+					end
+				)
+			else
+				coroutine.resume(co, selected[2])
+			end
+		end
+	)
 
-	table.sort(results, function(a, b) return a[1] < b[1] end)
-
-	return results
+	return coroutine.yield()
 end
 
 local function get_target_options()
@@ -34,7 +63,7 @@ local function get_target_options()
 end
 
 local options = {
-	PROFILE = { 'profile', 'Profile', foundry_options.select_picker(get_profile_options) },
+	PROFILE = { 'profile', 'Profile', profile_picker },
 	TARGET = { 'target', 'Target', foundry_options.select_picker(get_target_options) },
 }
 
