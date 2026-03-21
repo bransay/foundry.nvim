@@ -35,6 +35,7 @@ function M.show(project_module)
 		generate = '',
 		build = '󱌣',
 		check = '',
+		clean = '',
 		debug = '󰃤',
 		run = '',
 		test = '󰙨',

@@ -157,6 +157,19 @@ function M.run()
 	local result = setup_opts.task(task_name, { 'cargo', 'run', '--profile', profile, '--bin', target })
 end
 
+function M.clean()
+	local task_name = 'Cleaning'
+	local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+	local result = setup_opts.task(task_name, { 'cargo', 'clean' })
+	foundry_notify.dismiss(id)
+
+	if result then
+		foundry_notify.notify(task_name .. ' succeeded', { level = vim.log.levels.INFO })
+	else
+		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
+	end
+end
+
 function M.options()
 	local menu_options = {}
 	for _, item in pairs(options) do
@@ -192,6 +205,7 @@ function M.actions()
 		{ name = 'Build All', action = M.build_all },
 		{ name = 'Check', action = M.check },
 		{ name = 'Run', action = M.run },
+		{ name = 'Clean', action = M.clean },
 		{ name = 'Options', action = M.options },
 	}
 end
