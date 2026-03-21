@@ -147,6 +147,16 @@ function M.check()
 	end
 end
 
+function M.run()
+	local profile, target = get_build_context()
+	if not profile or not target then
+		return
+	end
+
+	local task_name = 'Running ' .. target .. ' (' .. profile .. ')'
+	local result = setup_opts.task(task_name, { 'cargo', 'run', '--profile', profile, '--bin', target })
+end
+
 function M.options()
 	local menu_options = {}
 	for _, item in pairs(options) do
@@ -181,6 +191,7 @@ function M.actions()
 		{ name = 'Build', action = M.build },
 		{ name = 'Build All', action = M.build_all },
 		{ name = 'Check', action = M.check },
+		{ name = 'Run', action = M.run },
 		{ name = 'Options', action = M.options },
 	}
 end
