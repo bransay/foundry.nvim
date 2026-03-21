@@ -17,7 +17,8 @@
 ### Actions
 - `options()` ✅ - Configure settings
 - `build()` ✅ - `cargo build --profile <profile> --bin <target>` with spinner notification
-- `build_all()` ❌ - Not implemented
+- `build_all()` ✅ - `cargo build --profile <profile> --all-targets` with spinner notification
+- `check()` ✅ - `cargo check --profile <profile>` with spinner notification
 - `run()` ❌ - Not implemented
 - `test()` ❌ - Not implemented
 
@@ -39,10 +40,6 @@
 - Spinner notification during build, success/failure on completion
 
 ## Step 3: Remaining Actions
-
-### build_all()
-- `cargo build --all-targets`
-- No profile/target selection needed? Or reuse currently selected profile?
 
 ### run()
 - `cargo run --bin <target> --profile <profile> [-- args]`
