@@ -34,6 +34,8 @@ function M.show(project_module)
 	local icons = {
 		generate = '',
 		build = '󱌣',
+		check = '',
+		clean = '',
 		debug = '󰃤',
 		run = '',
 		test = '󰙨',
