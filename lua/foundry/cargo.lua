@@ -109,6 +109,25 @@ function M.build()
 	end
 end
 
+function M.build_all()
+	local profile = get_option(options.PROFILE)
+	if not profile then
+		foundry_notify.notify('No profile selected', { level = vim.log.levels.ERROR })
+		return
+	end
+
+	local task_name = 'Building all targets (' .. profile .. ')'
+	local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+	local result = setup_opts.task(task_name, { 'cargo', 'build', '--profile', profile, '--all-targets' })
+	foundry_notify.dismiss(id)
+
+	if result then
+		foundry_notify.notify(task_name .. ' succeeded', { level = vim.log.levels.INFO })
+	else
+		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
+	end
+end
+
 function M.options()
 	local menu_options = {}
 	for _, item in pairs(options) do
@@ -141,6 +160,7 @@ end
 function M.actions()
 	return {
 		{ name = 'Build', action = M.build },
+		{ name = 'Build All', action = M.build_all },
 		{ name = 'Options', action = M.options },
 	}
 end
