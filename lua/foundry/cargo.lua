@@ -170,6 +170,25 @@ function M.clean()
 	end
 end
 
+function M.test()
+	local profile = get_option(options.PROFILE)
+	if not profile then
+		foundry_notify.notify('No profile selected', { level = vim.log.levels.ERROR })
+		return
+	end
+
+	local task_name = 'Testing (' .. profile .. ')'
+	local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+	local result = setup_opts.task(task_name, { 'cargo', 'test', '--profile', profile })
+	foundry_notify.dismiss(id)
+
+	if result then
+		foundry_notify.notify(task_name .. ' succeeded', { level = vim.log.levels.INFO })
+	else
+		foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
+	end
+end
+
 function M.options()
 	local menu_options = {}
 	for _, item in pairs(options) do
@@ -204,8 +223,9 @@ function M.actions()
 		{ name = 'Build', action = M.build },
 		{ name = 'Build All', action = M.build_all },
 		{ name = 'Check', action = M.check },
-		{ name = 'Run', action = M.run },
 		{ name = 'Clean', action = M.clean },
+		{ name = 'Run', action = M.run },
+		{ name = 'Test', action = M.test },
 		{ name = 'Options', action = M.options },
 	}
 end
