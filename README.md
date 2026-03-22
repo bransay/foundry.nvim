@@ -9,11 +9,12 @@ Forge your code without leaving Neovim — complete build, run, and debug workfl
 ## ✨ Features
 
 - **Build System Integration** - Seamless workflow for building and running projects
+- **Multi-Language Support** - CMake (C/C++) and Cargo (Rust) with extensible architecture
 - **Debugger Support** - Integrated debugging workflow with DAP
 - **Persistent Notifications** - Real-time feedback with spinner animations for long-running operations
 - **Smart Project Detection** - Automatically detects project type and configures available actions
 - **Test Integration** - Discovery and execution of tests with test-specific debugging
-- **Module-Based Architecture** - Extensible design supporting multiple build systems (CMake first, more coming)
+- **Module-Based Architecture** - Extensible design supporting multiple build systems
 
 ## 📦 Requirements
 
@@ -26,6 +27,10 @@ Foundry works out of the box with no required dependencies. However, optional in
 **For CMake projects:**
 - CMake 3.19+ (for presets support)
 - C/C++ compiler toolchain
+
+**For Cargo (Rust) projects:**
+- Rust toolchain (cargo, rustc)
+- DAP adapter for Rust debugging (e.g., codelldb, lldb-vscode)
 
 ## 💾 Installation
 
@@ -100,9 +105,11 @@ The menu displays available actions based on your detected project type.
 You can also run actions directly:
 
 ```vim
-:Foundry Generate      " Configure the project
+:Foundry Generate      " Configure the project (CMake)
 :Foundry Build         " Build selected target
 :Foundry Build All     " Build all targets
+:Foundry Check         " Run cargo check (Cargo only)
+:Foundry Clean         " Clean build artifacts
 :Foundry Run           " Run the executable
 :Foundry Debug         " Debug the executable
 :Foundry Test          " Run tests
@@ -111,6 +118,21 @@ You can also run actions directly:
 ```
 
 Tab completion is available for all subcommands.
+
+## 📋 Supported Build Systems
+
+| Action     | CMake | Cargo | Description                       |
+|------------|-------|-------|-----------------------------------|
+| Generate   | ✓     | -     | Configure project with presets    |
+| Build      | ✓     | ✓     | Build selected target             |
+| Build All  | ✓     | ✓     | Build all targets                 |
+| Check      | -     | ✓     | Run `cargo check`                 |
+| Clean      | -     | ✓     | Remove build artifacts            |
+| Run        | ✓     | ✓     | Run the executable                |
+| Debug      | ✓     | ✓     | Launch debugger                   |
+| Test       | ✓     | ✓     | Run tests                         |
+| Debug Test | ✓     | ✓     | Debug a specific test             |
+| Options    | ✓     | ✓     | Configure settings                |
 
 ## 🔧 CMake Workflow
 
