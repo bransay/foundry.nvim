@@ -127,6 +127,74 @@ local function get_default_executable_path(profile, target)
 	return vim.fs.joinpath(metadata.target_directory, profile_dir, exe_name)
 end
 
+local function get_test_targets()
+	local metadata = get_metadata()
+	if not metadata then
+		foundry_notify.notify('cargo metadata failed', { level = vim.log.levels.ERROR })
+		return {}
+	end
+
+	local targets = {}
+	for _, package in ipairs(metadata.packages or {}) do
+		for _, target in ipairs(package.targets or {}) do
+			if vim.list_contains(target.kind or {}, 'test') then
+				table.insert(targets, { target.name, target.name })
+			end
+		end
+	end
+
+	if #targets == 0 then
+		return {}
+	end
+
+	table.sort(targets, function(a, b) return a[1] < b[1] end)
+	return targets
+end
+
+local function get_test_functions(profile, test_target)
+	local result = vim.system(
+		{ 'cargo', 'test', '--profile', profile, '--test', test_target, '--', '--list' },
+		{ cwd = vim.fn.getcwd() }
+	):wait()
+
+	if result.code ~= 0 then
+		foundry_notify.notify('Failed to list tests: ' .. (result.stderr or 'unknown error'), { level = vim.log.levels.ERROR })
+		return nil
+	end
+
+	local functions = { { '*', 'All Tests' } }
+	for line in result.stdout:gmatch('[^\r\n]+') do
+		local test_name = line:match('^(.-)%s*: test$')
+		if test_name then
+			table.insert(functions, { test_name, test_name })
+		end
+	end
+
+	return functions
+end
+
+local function get_test_executable_path(profile, test_target)
+	local result = vim.system(
+		{ 'cargo', 'test', '--no-run', '--profile', profile, '--test', test_target, '--message-format=json' },
+		{ cwd = vim.fn.getcwd() }
+	):wait()
+
+	if result.code ~= 0 then
+		foundry_notify.notify('Failed to get test executable: ' .. (result.stderr or 'unknown error'), { level = vim.log.levels.ERROR })
+		return nil
+	end
+
+	for line in result.stdout:gmatch('[^\r\n]+') do
+		local ok, artifact = pcall(vim.json.decode, line)
+		if ok and artifact and type(artifact.executable) == 'string' then
+			return artifact.executable
+		end
+	end
+
+	foundry_notify.notify('No test executable found', { level = vim.log.levels.ERROR })
+	return nil
+end
+
 function M.build()
 	local profile, target = get_build_context()
 	if not profile or not target then
@@ -258,6 +326,63 @@ function M.debug()
 	end
 end
 
+function M.debug_test()
+	local profile = get_option(options.PROFILE)
+	if not profile then
+		foundry_notify.notify('No profile selected', { level = vim.log.levels.ERROR })
+		return
+	end
+
+	local test_targets = get_test_targets()
+	if #test_targets == 0 then
+		foundry_notify.notify('No test targets found', { level = vim.log.levels.ERROR })
+		return
+	end
+
+	local test_target = foundry_options.select_picker(function() return test_targets end)('Select test target')
+	if not test_target then
+		return
+	end
+
+	local test_functions = get_test_functions(profile, test_target)
+	if not test_functions then
+		return
+	end
+
+	local test_function = foundry_options.select_picker(function() return test_functions end)('Select test function')
+	if not test_function then
+		return
+	end
+
+	local build_before_run = get_option(options.BUILD_BEFORE_RUN, 'true') == 'true'
+	if build_before_run then
+		local task_name = 'Building test ' .. test_target
+		local id = foundry_notify.notify(task_name .. '...', { keep = true, spinner = true })
+		local result = setup_opts.task(task_name, { 'cargo', 'test', '--no-run', '--profile', profile, '--test', test_target })
+		foundry_notify.dismiss(id)
+		if not result then
+			foundry_notify.notify(task_name .. ' failed', { level = vim.log.levels.ERROR })
+			return
+		end
+	end
+
+	local exe_path = get_test_executable_path(profile, test_target)
+	if not exe_path then
+		return
+	end
+
+	local args = {}
+	if test_function ~= '*' then
+		args = { '--exact', test_function }
+	end
+
+	local debug = require('foundry.debug')
+	local result, reason = debug.debug('rust', exe_path, args)
+	if not result then
+		foundry_notify.notify(reason, { level = vim.log.levels.ERROR })
+	end
+end
+
 function M.options()
 	local menu_options = {}
 	for _, item in pairs(options) do
@@ -294,6 +419,7 @@ function M.actions()
 		{ name = 'Check', action = M.check },
 		{ name = 'Clean', action = M.clean },
 		{ name = 'Debug', action = M.debug },
+		{ name = 'Debug Test', action = M.debug_test },
 		{ name = 'Run', action = M.run },
 		{ name = 'Test', action = M.test },
 		{ name = 'Options', action = M.options },
