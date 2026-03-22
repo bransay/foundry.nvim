@@ -25,17 +25,20 @@ local function profile_picker(prompt, default)
 	return result
 end
 
-local function get_target_options()
+local function get_metadata()
 	local result = vim.system({ 'cargo', 'metadata', '--format-version=1', '--no-deps' }, { cwd = vim.fn.getcwd() }):wait()
 
 	if result.code ~= 0 then
-		foundry_notify.notify('cargo metadata failed: ' .. (result.stderr or 'unknown error'), { level = vim.log.levels.ERROR })
-		return {}
+		return nil
 	end
 
-	local metadata = vim.json.decode(result.stdout)
+	return vim.json.decode(result.stdout)
+end
+
+local function get_target_options()
+	local metadata = get_metadata()
 	if not metadata then
-		foundry_notify.notify('cargo metadata returned invalid JSON', { level = vim.log.levels.ERROR })
+		foundry_notify.notify('cargo metadata failed', { level = vim.log.levels.ERROR })
 		return {}
 	end
 
@@ -104,15 +107,13 @@ local function get_default_executable_path(profile, target)
 		bench = 'release',
 	}
 
-	local result = vim.system({ 'cargo', 'metadata', '--format-version=1', '--no-deps' }, { cwd = vim.fn.getcwd() }):wait()
-
-	if result.code ~= 0 then
-		foundry_notify.notify('cargo metadata failed: ' .. (result.stderr or 'unknown error'), { level = vim.log.levels.ERROR })
+	local metadata = get_metadata()
+	if not metadata then
+		foundry_notify.notify('cargo metadata failed', { level = vim.log.levels.ERROR })
 		return nil
 	end
 
-	local metadata = vim.json.decode(result.stdout)
-	if not metadata or not metadata.target_directory then
+	if not metadata.target_directory then
 		foundry_notify.notify('cargo metadata missing target_directory', { level = vim.log.levels.ERROR })
 		return nil
 	end
