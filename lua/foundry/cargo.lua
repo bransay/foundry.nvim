@@ -1,6 +1,7 @@
 local M = {}
 local foundry_notify = require('foundry.notify')
 local foundry_options = require('foundry.options')
+local foundry_debug = require('foundry.debug')
 local setup_opts = require('foundry').opts
 
 function M.detect(root)
@@ -24,17 +25,20 @@ local function profile_picker(prompt, default)
 	return result
 end
 
-local function get_target_options()
+local function get_metadata()
 	local result = vim.system({ 'cargo', 'metadata', '--format-version=1', '--no-deps' }, { cwd = vim.fn.getcwd() }):wait()
 
 	if result.code ~= 0 then
-		foundry_notify.notify('cargo metadata failed: ' .. (result.stderr or 'unknown error'), { level = vim.log.levels.ERROR })
-		return {}
+		return nil
 	end
 
-	local metadata = vim.json.decode(result.stdout)
+	return vim.json.decode(result.stdout)
+end
+
+local function get_target_options()
+	local metadata = get_metadata()
 	if not metadata then
-		foundry_notify.notify('cargo metadata returned invalid JSON', { level = vim.log.levels.ERROR })
+		foundry_notify.notify('cargo metadata failed', { level = vim.log.levels.ERROR })
 		return {}
 	end
 
@@ -58,7 +62,11 @@ end
 local options = {
 	PROFILE = { 'profile', 'Profile', profile_picker },
 	TARGET = { 'target', 'Target', foundry_options.select_picker(get_target_options) },
+	EXECUTABLE_PATH = { 'exe_path', 'Executable Path', foundry_options.file_picker() },
+	EXECUTABLE_ARGUMENTS = { 'exe_args', 'Executable Arguments', foundry_options.input_picker() },
+	BUILD_BEFORE_RUN = { 'build_before_run', 'Build before run', foundry_options.boolean_picker() },
 }
+options = vim.tbl_deep_extend('force', options, foundry_debug.options)
 
 local function get_option(option, default, show_ui)
 	show_ui = show_ui or false
@@ -89,6 +97,34 @@ local function get_build_context()
 	end
 
 	return profile, target
+end
+
+local function get_default_executable_path(profile, target)
+	local PROFILE_TO_DIR = {
+		dev = 'debug',
+		test = 'debug',
+		release = 'release',
+		bench = 'release',
+	}
+
+	local metadata = get_metadata()
+	if not metadata then
+		foundry_notify.notify('cargo metadata failed', { level = vim.log.levels.ERROR })
+		return nil
+	end
+
+	if not metadata.target_directory then
+		foundry_notify.notify('cargo metadata missing target_directory', { level = vim.log.levels.ERROR })
+		return nil
+	end
+
+	local exe_name = target
+	if vim.fn.has('win32') == 1 then
+		exe_name = exe_name .. '.exe'
+	end
+
+	local profile_dir = PROFILE_TO_DIR[profile] or profile
+	return vim.fs.joinpath(metadata.target_directory, profile_dir, exe_name)
 end
 
 function M.build()
@@ -189,6 +225,39 @@ function M.test()
 	end
 end
 
+function M.debug()
+	local profile, target = get_build_context()
+	if not profile or not target then
+		return
+	end
+
+	local executable_path = get_option(options.EXECUTABLE_PATH, get_default_executable_path(profile, target))
+	if not executable_path then
+		foundry_notify.notify('No executable path available', { level = vim.log.levels.ERROR })
+		return
+	end
+
+	if not vim.fn.filereadable(executable_path) then
+		foundry_notify.notify('Executable does not exist: ' .. executable_path, { level = vim.log.levels.ERROR })
+		return
+	end
+
+	local build_before_run = get_option(options.BUILD_BEFORE_RUN, 'true') == 'true'
+	if build_before_run then
+		M.build()
+	end
+
+	local arguments = get_option(options.EXECUTABLE_ARGUMENTS, '') or ''
+	local args = vim.fn.split(arguments, ' ')
+
+	local debug = require('foundry.debug')
+	local result, reason = debug.debug('rust', executable_path, args)
+
+	if not result then
+		foundry_notify.notify(reason, { level = vim.log.levels.ERROR })
+	end
+end
+
 function M.options()
 	local menu_options = {}
 	for _, item in pairs(options) do
@@ -224,6 +293,7 @@ function M.actions()
 		{ name = 'Build All', action = M.build_all },
 		{ name = 'Check', action = M.check },
 		{ name = 'Clean', action = M.clean },
+		{ name = 'Debug', action = M.debug },
 		{ name = 'Run', action = M.run },
 		{ name = 'Test', action = M.test },
 		{ name = 'Options', action = M.options },
